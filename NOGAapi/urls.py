@@ -13,6 +13,8 @@ urlpatterns = [
     
     path('users' , UsersApiView.as_view() ),
     path('users/<int:pk>' , UserApiView.as_view() ),
+
+    path('feature' , featureAPIView.as_view() ),
     
     path('employees',EmployeesApiView.as_view()),
     path('employees/<int:pk>' , EmployeeApiView.as_view() ),
