@@ -17,4 +17,7 @@ urlpatterns = [
     path('options' , OptionsAPIView.as_view()),
     path('options/<int:pk>' , OptionAPIView.as_view()),
 
+    path('varients' , VarientsAPIView.as_view()),
+    path('varients/<int:pk>' , VarientAPIView.as_view()),
+
 ]

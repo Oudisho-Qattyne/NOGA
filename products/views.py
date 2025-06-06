@@ -1,6 +1,6 @@
 from django.shortcuts import render
-from rest_framework.views import APIView
-from rest_framework import generics
+from rest_framework.views import APIView , Response , status
+from rest_framework import generics 
 from .models import *
 from .serializers import *
 from rest_framework.permissions import IsAuthenticated 
@@ -63,7 +63,7 @@ class ProductsAPIView(generics.ListAPIView , generics.CreateAPIView):
 class ProductAPIView(generics.DestroyAPIView , generics.UpdateAPIView , generics.RetrieveAPIView):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
-
+    
 
 class OptionsAPIView(generics.ListAPIView , generics.CreateAPIView):
     queryset = Option.objects.all()
@@ -72,3 +72,17 @@ class OptionsAPIView(generics.ListAPIView , generics.CreateAPIView):
 class OptionAPIView(generics.DestroyAPIView , generics.UpdateAPIView , generics.RetrieveAPIView):
     queryset = Option.objects.all()
     serializer_class = OptionSerializer
+
+
+class VarientsAPIView(generics.ListAPIView , generics.CreateAPIView):
+    queryset = Varient.objects.all()
+    serializer_class = VarientSerializers
+
+class VarientAPIView(generics.DestroyAPIView , generics.UpdateAPIView , generics.RetrieveAPIView):
+    queryset = Varient.objects.all()
+    serializer_class = VarientSerializers
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.options.all().delete()
+        self.perform_destroy(instance)
+        return Response(status=status.HTTP_204_NO_CONTENT)

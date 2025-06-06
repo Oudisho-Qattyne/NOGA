@@ -26,9 +26,10 @@ class Option(models.Model):
     attribute = models.ForeignKey(Attribute , on_delete=models.PROTECT)
     def __str__(self) -> str:
         return self.attribute + " : " + self.option
+
     
-class option_unit(models.Model):
-    option = models.ForeignKey(Option , on_delete=models.PROTECT)
+class Option_Unit(models.Model):
+    option = models.ForeignKey(Option , on_delete=models.CASCADE)
     unit = models.ForeignKey(Unit ,  on_delete=models.CASCADE)
 
 class Category(models.Model):
