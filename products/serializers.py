@@ -39,7 +39,7 @@ class AttributeSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         units = []
         has_unit = validated_data.get('has_unit',False)
-        units = validated_data.pop('units')
+        units = validated_data.pop('units',[])
         attribute = Attribute.objects.create(**validated_data)
         if has_unit:
             for unit in units:
@@ -156,7 +156,7 @@ class OptionSerializer(serializers.ModelSerializer):
     #             if 'attribute' in self.initial_data:
     #                 attribute =self.initial_data['attribute']
     #                 attribute_instance = Attribute.objects.get(id = attribute)
-    #                 attribute_instance
+    #                 if attribute_instance
 
     def validate(self, attrs):
         validated_data = super().validate(attrs)
@@ -168,7 +168,6 @@ class OptionSerializer(serializers.ModelSerializer):
         elif attribute.attribute_type == "number":
             if not option.isdigit():
                 raise serializers.ValidationError({'option' : ['this option should be number']})
-        print(validated_data)
         if attribute.has_unit:
             unit = validated_data.get('unit' , None)
             if unit == None:
@@ -209,8 +208,8 @@ class VarientSerializers(serializers.ModelSerializer):
         validated_data = super().validate(attrs)
         attributes = validated_data['product']
         required_product_attributes = list(attributes.category.attributes.all().values_list())
+        required_product_attributes_ids = list(required_product_attribute[0]  for required_product_attribute in  required_product_attributes)
         options = validated_data.get('options' , [])
-        product_attributes = list(option['attribute'].id  for option in  options)
 
         # if len(options) == 0:
         #     missed_attributes = []
@@ -220,36 +219,61 @@ class VarientSerializers(serializers.ModelSerializer):
         #         missed_attributes.append({required_attribute[1] :[f'this option is required']})
         #     attrs = list(attr[1] for attr in required_product_attributes)
         #     raise serializers.ValidationError({"options" :[f'these attributes {attrs} are required']})
-        
-        missed_attributes = []
+        attributes_errors = []
+
+        needed_options = []
+        for option in options:
+            if option['attribute'].id  in required_product_attributes_ids:
+                needed_options.append(option)
+
+        options = needed_options
+
+        # check for missing attributes
+        product_attributes = list(option['attribute'].id  for option in  options)
         for required_attribute in required_product_attributes:
             required_attribute_id = required_attribute[0]
             if required_attribute_id not in product_attributes:
-                missed_attributes.append({required_attribute[1] :[f'this option is required']})
+                attributes_errors.append({required_attribute[1] :[f'this option is required']})
         
-        if len(missed_attributes) != 0:
-            raise serializers.ValidationError({"options" :missed_attributes})
+        # check for multivalue attributes
+        repeated_attributes = list(set([option['attribute'] for option in options if product_attributes.count(option['attribute'].id) > 1]))
+        for repeated_attribute in repeated_attributes:
+            if not repeated_attribute.is_multivalue:
+                attributes_errors.append({repeated_attribute.attribute :[f'this attribute is not multivalue']})
 
-        option_validation = []
+       
+
         for option in options:
             data = option
             data['attribute'] = int(option['attribute'].id) 
             option_instance = OptionSerializer(data=data)
             if not option_instance.is_valid():
-                option_validation.append({option['attribute'].attribute :[option_instance.errors]})
+                attributes_errors.append({option['attribute'].attribute :[option_instance.errors]})
 
-        if len(option_validation) != 0:
-            raise serializers.ValidationError({"options" :option_validation})
+        if len(attributes_errors) != 0:
+            raise serializers.ValidationError({"options" :attributes_errors})
         
+        validated_data['options'] = options
         return validated_data
     
     def create(self, validated_data):
         options = validated_data.pop("options")
         varient_instance = Varient.objects.create(**validated_data)
         for option in options:
-            option_serialized_data = OptionSerializer(data=option)
-            option_serialized_data.is_valid(raise_exception=True)
-            option_instance =  option_serialized_data.save()
+            option_instance = None
+            attribute = Attribute.objects.get(id=option['attribute'])
+            if attribute.is_categorical:
+                option_instances = Option.objects.filter(option=option['option'] , attribute=option['attribute'] , option_unit__unit=option['unit'])
+                if(len(option_instances)>1):
+                    option_instance = option_instances[0]
+                else:
+                    option_serialized_data = OptionSerializer(data=option)
+                    option_serialized_data.is_valid(raise_exception=True)
+                    option_instance =  option_serialized_data.save()
+            else:
+                option_serialized_data = OptionSerializer(data=option)
+                option_serialized_data.is_valid(raise_exception=True)
+                option_instance =  option_serialized_data.save()
             varient_instance.options.add(option_instance)
         varient_instance.save()
         
@@ -258,11 +282,23 @@ class VarientSerializers(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         options = validated_data.pop("options")
         varient_instance = super().update(instance, validated_data)
-        instance.options.all().delete()
+        instance.options.filter(attribute__is_categorical=False).delete()
+        instance.options.clear()
         for option in options:
-            option_serialized_data = OptionSerializer(data=option)
-            option_serialized_data.is_valid(raise_exception=True)
-            option_instance =  option_serialized_data.save()
+            option_instance = None
+            attribute = Attribute.objects.get(id=option['attribute'])
+            if attribute.is_categorical:
+                option_instances = Option.objects.filter(option=option['option'] , attribute=option['attribute'] , option_unit__unit=option['unit'])
+                if(len(option_instances)>1):
+                    option_instance = option_instances[0]
+                else:
+                    option_serialized_data = OptionSerializer(data=option)
+                    option_serialized_data.is_valid(raise_exception=True)
+                    option_instance =  option_serialized_data.save()
+            else:
+                option_serialized_data = OptionSerializer(data=option)
+                option_serialized_data.is_valid(raise_exception=True)
+                option_instance =  option_serialized_data.save()
             varient_instance.options.add(option_instance)
         # varient_instance.save()
         return varient_instance

@@ -83,6 +83,6 @@ class VarientAPIView(generics.DestroyAPIView , generics.UpdateAPIView , generics
     serializer_class = VarientSerializers
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        instance.options.all().delete()
+        instance.options.filter(attribute__is_categorical=False).delete()
         self.perform_destroy(instance)
         return Response(status=status.HTTP_204_NO_CONTENT)
