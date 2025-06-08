@@ -33,6 +33,121 @@
         "fields":{
             "job_type": "Sales Officer"
         }
+    },
+    {
+        "model":"products.Unit",
+        "pk": 1,
+        "fields":{
+            "job_type": "GB"
+        }
+    },
+    {
+        "model":"products.Unit",
+        "pk": 2,
+        "fields":{
+            "job_type": "MP"
+        }
+    },
+    {
+        "model":"products.Unit",
+        "pk": 3,
+        "fields":{
+            "job_type": "mA"
+        }
+    },
+    {
+        "model":"products.Attribute",
+        "pk": 1,
+        "fields":{
+            "attribute": "storage",
+            "attribute_type": "number",
+            "is_multivalue":false,
+            "is_categorical":false,
+            "has_unit":true
+        }
+    },
+    {
+        "model":"products.Attribute_Unit",
+        "pk": 1,
+        "fields":{
+            "attribute": 1,
+            "unit": 1
+        }
+    },
+    {
+        "model":"products.Attribute",
+        "pk": 2,
+        "fields":{
+            "attribute": "cameras",
+            "attribute_type": "number",
+            "is_multivalue":true,
+            "is_categorical":false,
+            "has_unit":true
+        }
+    },
+    {
+        "model":"products.Attribute_Unit",
+        "pk": 2,
+        "fields":{
+            "attribute": 2,
+            "unit": 2
+        }
+    },
+    {
+        "model":"products.Attribute",
+        "pk": 3,
+        "fields":{
+            "attribute": "battery",
+            "attribute_type": "number",
+            "is_multivalue":false,
+            "is_categorical":false,
+            "has_unit":true
+        }
+    },
+    {
+        "model":"products.Attribute_Unit",
+        "pk": 3,
+        "fields":{
+            "attribute": 3,
+            "unit": 3
+        }
+    },
+    {
+        "model":"products.Attribute",
+        "pk": 4,
+        "fields":{
+            "attribute": "color",
+            "attribute_type": "number",
+            "is_multivalue":false,
+            "is_categorical":false,
+            "has_unit":false
+        }
+    },
+    {
+        "model":"products.Category",
+        "pk": 1,
+        "fields":{
+            "category": "phone",
+            "attributes":[
+             1,3
+            ]
+        }
+    },
+    {
+        "model":"products.Category_Attribute",
+        "pk": 1,
+        "fields":{
+            "category": 1,
+            "attribute":1
+        }
+    },
+    {
+        "model":"products.Category_Attribute",
+        "pk": 2,
+        "fields":{
+            "category": 1,
+            "attribute":3
+        }
     }
 ]
    

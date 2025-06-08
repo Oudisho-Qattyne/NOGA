@@ -2,6 +2,7 @@ from rest_framework import serializers
 from rest_framework.views import Response , status
 from .models import *
 from NOGA.utils import *
+from django.db.models.deletion import ProtectedError
 
 class UnitSerializer(serializers.ModelSerializer):
     class Meta:
@@ -59,6 +60,8 @@ class AttributeSerializer(serializers.ModelSerializer):
         return instance
     
 class CategorySerializer(serializers.ModelSerializer):
+    attributes = serializers.PrimaryKeyRelatedField(queryset=Attribute.objects.all(), write_only=True, required=True, many=True) 
+
     class Meta:
         model=Category
         fields=['id' , 'category' , 'parent_category' , 'attributes']
@@ -71,7 +74,7 @@ class CategorySerializer(serializers.ModelSerializer):
             }
         }
     def create(self, validated_data):
-        attributes = validated_data.pop('attributes')
+        attributes = validated_data.pop('attributes',[])
         category = Category.objects.create(**validated_data)
         for attribute in attributes:
             category.attributes.add(attribute)
@@ -126,8 +129,8 @@ class ProductSerializer(serializers.ModelSerializer):
         return super(ProductSerializer, self).to_representation(instance)
 
     def update(self, instance, validated_data):
-        varients = Varient.objects.filter(product=instance) 
-        if(len(varients.values_list()) != 0):
+        variants = Variant.objects.filter(product=instance) 
+        if(len(variants.values_list()) != 0):
             if instance.category != validated_data['category']:
                 raise serializers.ValidationError({"error": "Cannot update category as there are variants associated with the product."})
         return super().update(instance, validated_data)
@@ -164,18 +167,18 @@ class OptionSerializer(serializers.ModelSerializer):
         option = validated_data['option']
         if attribute.attribute_type == "string":
             if option.isdigit():
-                raise serializers.ValidationError({'option' : ['this option should be string']})
+                raise serializers.ValidationError({attribute.attribute : ['this option should be string']})
         elif attribute.attribute_type == "number":
             if not option.isdigit():
-                raise serializers.ValidationError({'option' : ['this option should be number']})
+                raise serializers.ValidationError({attribute.attribute : ['this option should be number']})
         if attribute.has_unit:
             unit = validated_data.get('unit' , None)
             if unit == None:
-                raise serializers.ValidationError({'unit' : ['this field is required']})
+                raise serializers.ValidationError({attribute.attribute : ['unit field is required']})
             else:
                 attribute_units = list(attribute.units.all().values_list('id' , flat=True))
                 if unit not in attribute_units:
-                    raise serializers.ValidationError({'unit' : ['wrong unit selected']})
+                    raise serializers.ValidationError({attribute.attribute : ['wrong unit selected']})
 
         return validated_data
     def create(self, validated_data):
@@ -188,28 +191,50 @@ class OptionSerializer(serializers.ModelSerializer):
         option.save()
         return option
     
+    def update(self, instance, validated_data):
+        unit = validated_data.pop('unit' , None)
+        super().update(instance, validated_data)
+        if unit is not None:
+            unit_instance = Unit.objects.get(id=unit)
+            try:
+                option_unit =  Option_Unit.objects.filter(option=instance , unit = unit_instance)[0]
+                option_unit.unit = unit_instance
+                option_unit.save()
+            except Option_Unit.DoesNotExist:
+                option_unit = Option_Unit.objects.create(option=instance , unit=unit_instance)
+                option_unit.save()
+        else:
+            try:
+                Option_Unit.objects.filter(option=instance , unit = unit_instance).delete()
+            except Option_Unit.DoesNotExist:
+                print('')
+        return instance
+    
     def to_representation(self, instance):
         # self.fields['attribute'] = AttributeSerializer(read_only=True) 
         data = super(OptionSerializer, self).to_representation(instance) 
         unit = "null"
         if instance.attribute.has_unit:
-            unit = Option_Unit.objects.get(option=instance.id).unit.unit
+            try :
+                unit = Option_Unit.objects.get(option=instance.id).unit.unit
+            except Option_Unit.DoesNotExist:
+                unit = "null"
         data['unit'] = unit
         data['attribute'] = instance.attribute.attribute
         return data
     
-class VarientSerializers(serializers.ModelSerializer):
+class VariantSerializers(serializers.ModelSerializer):
     options = OptionSerializer(many=True , required=True)
     class Meta:
-        model=Varient
+        model=Variant
         fields = ["id" , "product" , "quantity" , "wholesale_price" , "selling_price" , "options"]
     
     def validate(self, attrs):
+        options = attrs.get('options' , [])
         validated_data = super().validate(attrs)
         attributes = validated_data['product']
         required_product_attributes = list(attributes.category.attributes.all().values_list())
         required_product_attributes_ids = list(required_product_attribute[0]  for required_product_attribute in  required_product_attributes)
-        options = validated_data.get('options' , [])
 
         # if len(options) == 0:
         #     missed_attributes = []
@@ -248,7 +273,7 @@ class VarientSerializers(serializers.ModelSerializer):
             data['attribute'] = int(option['attribute'].id) 
             option_instance = OptionSerializer(data=data)
             if not option_instance.is_valid():
-                attributes_errors.append({option['attribute'].attribute :[option_instance.errors]})
+                attributes_errors.append({"options" :[option_instance.errors]})
 
         if len(attributes_errors) != 0:
             raise serializers.ValidationError({"options" :attributes_errors})
@@ -258,7 +283,7 @@ class VarientSerializers(serializers.ModelSerializer):
     
     def create(self, validated_data):
         options = validated_data.pop("options")
-        varient_instance = Varient.objects.create(**validated_data)
+        variant_instance = Variant.objects.create(**validated_data)
         for option in options:
             option_instance = None
             attribute = Attribute.objects.get(id=option['attribute'])
@@ -269,19 +294,20 @@ class VarientSerializers(serializers.ModelSerializer):
                 else:
                     option_serialized_data = OptionSerializer(data=option)
                     option_serialized_data.is_valid(raise_exception=True)
+
                     option_instance =  option_serialized_data.save()
             else:
                 option_serialized_data = OptionSerializer(data=option)
                 option_serialized_data.is_valid(raise_exception=True)
                 option_instance =  option_serialized_data.save()
-            varient_instance.options.add(option_instance)
-        varient_instance.save()
+            variant_instance.options.add(option_instance)
+        variant_instance.save()
         
-        return varient_instance
+        return variant_instance
     
     def update(self, instance, validated_data):
         options = validated_data.pop("options")
-        varient_instance = super().update(instance, validated_data)
+        variant_instance = super().update(instance, validated_data)
         instance.options.filter(attribute__is_categorical=False).delete()
         instance.options.clear()
         for option in options:
@@ -299,7 +325,13 @@ class VarientSerializers(serializers.ModelSerializer):
                 option_serialized_data = OptionSerializer(data=option)
                 option_serialized_data.is_valid(raise_exception=True)
                 option_instance =  option_serialized_data.save()
-            varient_instance.options.add(option_instance)
-        # varient_instance.save()
-        return varient_instance
+            variant_instance.options.add(option_instance)
+        # variant_instance.save()
+        return variant_instance
    
+    def delete(self, request, *args, **kwargs):
+        try:
+            self.object.delete()
+            return Response()
+        except ProtectedError:
+            return Response()

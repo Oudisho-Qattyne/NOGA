@@ -24,6 +24,12 @@ class AttributeAPIView(generics.DestroyAPIView , generics.UpdateAPIView , generi
     queryset=Attribute.objects.all()
     serializer_class=AttributeSerializer
     # permission_classes=[IsAuthenticated]
+    def delete(self, request, *args, **kwargs):
+        try:
+            super().delete(request, *args, **kwargs)
+            return Response({"message": "Object deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+        except ProtectedError:
+            return Response({"message": "Object can't be deleted"}, status=status.HTTP_400_BAD_REQUEST)
 
 class UnitsAPIView(generics.ListAPIView,generics.ListCreateAPIView):
     queryset=Unit.objects.all()
@@ -36,7 +42,13 @@ class UnitAPIView(generics.DestroyAPIView,generics.UpdateAPIView , generics.Retr
     queryset=Unit.objects.all()
     serializer_class=UnitSerializer
     # permission_classes=[IsAuthenticated]
- 
+    def delete(self, request, *args, **kwargs):
+        try:
+            super().delete(request, *args, **kwargs)
+            return Response({"message": "Object deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+        except ProtectedError:
+            return Response({"message": "Object can't be deleted"}, status=status.HTTP_400_BAD_REQUEST)
+
 class CategroiesAPIView(generics.ListAPIView , generics.CreateAPIView):
     queryset=Category.objects.all()
     serializer_class = CategorySerializer
@@ -50,6 +62,12 @@ class CategroiesAPIView(generics.ListAPIView , generics.CreateAPIView):
 class CategroyAPIView(generics.DestroyAPIView , generics.UpdateAPIView , generics.RetrieveAPIView):
     queryset=Category.objects.all()
     serializer_class = CategorySerializer
+    def delete(self, request, *args, **kwargs):
+        try:
+            super().delete(request, *args, **kwargs)
+            return Response({"message": "Object deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+        except ProtectedError:
+            return Response({"message": "Object can't be deleted"}, status=status.HTTP_400_BAD_REQUEST)
 
 class ProductsAPIView(generics.ListAPIView , generics.CreateAPIView):
     queryset = Product.objects.all()
@@ -63,26 +81,49 @@ class ProductsAPIView(generics.ListAPIView , generics.CreateAPIView):
 class ProductAPIView(generics.DestroyAPIView , generics.UpdateAPIView , generics.RetrieveAPIView):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
-    
+    def delete(self, request, *args, **kwargs):
+        try:
+            super().delete(request, *args, **kwargs)
+            return Response({"message": "Object deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+        except ProtectedError:
+            return Response({"message": "Object can't be deleted"}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class OptionsAPIView(generics.ListAPIView , generics.CreateAPIView):
     queryset = Option.objects.all()
     serializer_class = OptionSerializer
+    pagination_class = Paginator
+    filter_backends=[filter.DjangoFilterBackend , filters.SearchFilter , filters.OrderingFilter]
+    filterset_fields=["id" , "option" , "attribute" ]
+    search_fields=["id" , "option" , "attribute"]
+    ordering_fields=["id" , "option" , "attribute" ]
 
 class OptionAPIView(generics.DestroyAPIView , generics.UpdateAPIView , generics.RetrieveAPIView):
     queryset = Option.objects.all()
     serializer_class = OptionSerializer
+    def delete(self, request, *args, **kwargs):
+        try:
+            super().delete(request, *args, **kwargs)
+            return Response({"message": "Object deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+        except ProtectedError:
+            return Response({"message": "Object can't be deleted"}, status=status.HTTP_400_BAD_REQUEST)
 
 
-class VarientsAPIView(generics.ListAPIView , generics.CreateAPIView):
-    queryset = Varient.objects.all()
-    serializer_class = VarientSerializers
+class VariantsAPIView(generics.ListAPIView , generics.CreateAPIView):
+    queryset = Variant.objects.all()
+    serializer_class = VariantSerializers
 
-class VarientAPIView(generics.DestroyAPIView , generics.UpdateAPIView , generics.RetrieveAPIView):
-    queryset = Varient.objects.all()
-    serializer_class = VarientSerializers
+class VariantAPIView(generics.DestroyAPIView , generics.UpdateAPIView , generics.RetrieveAPIView):
+    queryset = Variant.objects.all()
+    serializer_class = VariantSerializers
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         instance.options.filter(attribute__is_categorical=False).delete()
         self.perform_destroy(instance)
         return Response(status=status.HTTP_204_NO_CONTENT)
+    def delete(self, request, *args, **kwargs):
+        try:
+            super().delete(request, *args, **kwargs)
+            return Response({"message": "Object deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+        except ProtectedError:
+            return Response({"message": "Object can't be deleted"}, status=status.HTTP_400_BAD_REQUEST)
