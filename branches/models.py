@@ -14,3 +14,8 @@ class Branch(models.Model):
     manager = models.OneToOneField("employees.Employee", on_delete=models.PROTECT , related_name='manager_of_branch')
     city = models.ForeignKey(City , on_delete=models.PROTECT )
     
+class Branch_Products(models.Model):
+    branch = models.ForeignKey(Branch , on_delete=models.PROTECT)
+    product = models.ForeignKey("products.Variant" , on_delete=models.PROTECT)
+    quantity = models.PositiveIntegerField()
+    

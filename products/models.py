@@ -1,6 +1,6 @@
 from django.db import models
-
-
+from branches.models import Branch
+from NOGA.utils import *
 
 # Create your models here.
 class Unit(models.Model):
@@ -23,7 +23,7 @@ class Attribute(models.Model):
 
 class Attribute_Unit(models.Model):
     unit = models.ForeignKey(Unit , on_delete=models.PROTECT)
-    Attribute = models.ForeignKey(Attribute , on_delete=models.PROTECT)
+    attribute = models.ForeignKey(Attribute , on_delete=models.PROTECT)
 
 class Option(models.Model):
     option = models.CharField(max_length=50)
@@ -44,7 +44,7 @@ class Category(models.Model):
     
 class Category_Attribute(models.Model):
     category = models.ForeignKey(Category , on_delete=models.PROTECT)
-    Attribute = models.ForeignKey(Attribute , on_delete=models.PROTECT)
+    attribute = models.ForeignKey(Attribute , on_delete=models.PROTECT)
 
 
 
@@ -53,9 +53,14 @@ class Product(models.Model):
     category = models.ForeignKey(Category , on_delete=models.PROTECT)
     qr_code = models.CharField(max_length=300 , null=True , blank=True)
     qr_codes_download = models.CharField(max_length=300 , null=True , blank=True)
+    linked_products = models.ManyToManyField("Product")
     def __str__(self) -> str:
         return self.product_name
     
+class Linked_products(models.Model):
+    product = models.ForeignKey(Product , on_delete=models.CASCADE , related_name="product1")
+    linked_to = models.ForeignKey(Product , on_delete=models.CASCADE , related_name="linked_to_products")
+
 class Variant(models.Model):
     product = models.ForeignKey(Product , on_delete=models.PROTECT)
     quantity = models.PositiveIntegerField()
@@ -65,8 +70,42 @@ class Variant(models.Model):
 
 class Variant_Option(models.Model):
     variant = models.ForeignKey(Variant , on_delete=models.PROTECT)
-    option = models.ForeignKey(Option , on_delete=models.PROTECT)
+    option = models.ForeignKey(Option , on_delete=models.CASCADE)
 
 
     
 
+class Transportation(models.Model):
+    TRANSPORT_STATUS_TYPES=[
+        ('packaging:','packaging:'),
+        ('transporting','transporting'),
+        ('delivered','delivered'),
+        ('confirmed','confirmed'),
+    ]
+    transportation_status = models.CharField(max_length=30 , choices=TRANSPORT_STATUS_TYPES , default='packaging')
+    source = models.ForeignKey(Branch , on_delete=models.CASCADE , null=True , related_name="from_branch")
+    destination = models.ForeignKey(Branch , on_delete=models.CASCADE , null=True  , related_name="to_branch")
+    code = models.CharField(max_length=100)
+    @property
+    def transported_products(self):
+        return self.transported_products_set.all()
+    @property
+    def received_products(self):
+        return self.received_products_set.all()
+    
+    # transported_products = models.ManyToManyField(Variant,through="Transported_Products" )
+    def save(self, *args, **kwargs):
+        if not self.code:
+            self.code = generate_unique_code()
+        super(Transportation, self).save(*args, **kwargs)
+
+
+class Transported_Products(models.Model):
+    transportation = models.ForeignKey(Transportation , on_delete=models.PROTECT)
+    product = models.ForeignKey(Variant , on_delete=models.PROTECT , null=False)
+    quantity = models.PositiveIntegerField()
+
+class Received_Products(models.Model):
+    transportation = models.ForeignKey(Transportation , on_delete=models.PROTECT)
+    product = models.ForeignKey(Variant , on_delete=models.PROTECT , null=False)
+    quantity = models.PositiveIntegerField()

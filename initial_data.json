@@ -38,21 +38,21 @@
         "model":"products.Unit",
         "pk": 1,
         "fields":{
-            "job_type": "GB"
+            "unit": "GB"
         }
     },
     {
         "model":"products.Unit",
         "pk": 2,
         "fields":{
-            "job_type": "MP"
+            "unit": "MP"
         }
     },
     {
         "model":"products.Unit",
         "pk": 3,
         "fields":{
-            "job_type": "mA"
+            "unit": "mA"
         }
     },
     {

@@ -58,10 +58,10 @@ class EmployeeTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         data = super().validate(attrs)
         refresh = self.get_token(self.user)
-        if self.user.is_employee == False:
-            raise exceptions.AuthenticationFailed('No active account found with the given credentials')
         if(self.user.is_staff):
             data['role'] = 'admin'
+        elif self.user.is_employee == False:
+            raise exceptions.AuthenticationFailed('No active account found with the given credentials')
         else:
             data['role'] = self.user.employee_user.employee.job_type.job_type
             if(self.user.employee_user.employee.branch):

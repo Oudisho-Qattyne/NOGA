@@ -20,4 +20,10 @@ urlpatterns = [
     path('variants' , VariantsAPIView.as_view()),
     path('variants/<int:pk>' , VariantAPIView.as_view()),
 
+    path('transportations' ,TransportationsAPIView.as_view()),
+    path('transportations/<int:pk>' ,TransportationAPIView.as_view()),
+    path('transportations/<int:pk>/transport' ,TransportProducts),
+    path('transportations/<int:pk>/receive' ,ReceiveTransportation),
+    path('transportations/<int:pk>/confirm' ,ConfirmTransportation),
+
 ]

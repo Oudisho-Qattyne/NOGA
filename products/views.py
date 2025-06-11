@@ -7,6 +7,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import filters
 from django_filters import rest_framework as filter
 from NOGA.utils import *
+from rest_framework.decorators import api_view , permission_classes
+
 # Create your views here.
 
 
@@ -127,3 +129,112 @@ class VariantAPIView(generics.DestroyAPIView , generics.UpdateAPIView , generics
             return Response({"message": "Object deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
         except ProtectedError:
             return Response({"message": "Object can't be deleted"}, status=status.HTTP_400_BAD_REQUEST)
+
+class TransportationsAPIView( generics.CreateAPIView , generics.ListAPIView ):
+    queryset = Transportation.objects.all()
+    serializer_class = TransportationSerializer
+
+class TransportationAPIView(generics.DestroyAPIView , generics.UpdateAPIView , generics.RetrieveAPIView):
+    queryset = Transportation.objects.all()
+    serializer_class = TransportationSerializer
+
+@api_view(['POST'])
+def TransportProducts(request , pk):
+    
+    try:
+        transportation_instance = Transportation.objects.get(id=pk)
+        if transportation_instance.transportation_status == 'transporting':
+            return Response({"Transportation" : "Transportation has already been sent."} , status=status.HTTP_400_BAD_REQUEST)
+        if transportation_instance.transportation_status != 'packaging':
+            return Response({"Transportation" : "Transportation is not packed yet"} , status=status.HTTP_400_BAD_REQUEST)
+
+        transportation_instance.transportation_status = "transporting"
+        transportation_instance.save()
+
+    except Transportation.DoesNotExist:
+        Response({"message" : "Transportation not found"} , status=status.HTTP_404_NOT_FOUND)
+
+    return Response({"message" : f'Transportation {pk} is transporting' })
+
+
+@api_view(['POST'])
+def ReceiveTransportation(request , pk):
+    
+    try:
+        transportation_instance = Transportation.objects.get(id=pk)
+        if transportation_instance.transportation_status == 'delivered':
+            return Response({"Transportation" : "Transportation has already been received"} , status=status.HTTP_400_BAD_REQUEST)
+        if transportation_instance.transportation_status != 'transporting':
+            return Response({"Transportation" : "Transportation is not sent yet"} , status=status.HTTP_400_BAD_REQUEST)
+
+        if 'code' not in request.data:
+            return Response({"code" : "The code is required"} , status=status.HTTP_400_BAD_REQUEST)
+        
+        code = request.data['code']
+
+        if code != transportation_instance.code:
+            return Response({"code" : "The code does not match"} , status=status.HTTP_400_BAD_REQUEST)
+        
+        transportation_instance.transportation_status = "delivered"
+        transportation_instance.save()
+
+    except Transportation.DoesNotExist:
+        Response({"message" : "Transportation not found"} , status=status.HTTP_404_NOT_FOUND)
+
+    return Response({"message" : f'Transportation {pk} is delivered' })
+
+
+@api_view(['POST'])
+def ConfirmTransportation(request , pk):
+   
+    try:
+        transportation_instance = Transportation.objects.get(id=pk)
+        if transportation_instance.transportation_status == 'confirmed':
+            return Response({"Transportation" : "Transportation has already been confirmed"} , status=status.HTTP_400_BAD_REQUEST)
+        if transportation_instance.transportation_status != 'delivered':
+            return Response({"Transportation" : "Transportation is not delivered yet"} , status=status.HTTP_400_BAD_REQUEST)
+
+        if 'received_products' not in request.data:
+            return Response({"received_products" : "The received products are required"} , status=status.HTTP_400_BAD_REQUEST)
+        
+        received_products = request.data['received_products']
+
+        errors = []
+
+        for received_product in received_products:
+            received_product['transportation'] = transportation_instance.id
+            received_product_serialized_data = ReceivedProductSerializer(data=received_product)
+            valid = received_product_serialized_data.is_valid()
+            if not valid:
+                errors.append(received_product_serialized_data.errors)
+
+        if len(errors)!=0:
+            return Response({"received_product" : errors} , status=status.HTTP_400_BAD_REQUEST)
+        
+        destination_branch = transportation_instance.destination
+        for received_product in received_products:
+            received_product['transportation'] = transportation_instance.id
+            received_product_serialized_data = ReceivedProductSerializer(data=received_product)
+            valid = received_product_serialized_data.is_valid()
+            received_product_instance = received_product_serialized_data.save()
+            if transportation_instance.destination != None:
+                try:
+                    branch_product = Branch_Products.objects.get(branch=destination_branch , product=received_product_instance.product)
+                    branch_product.quantity = branch_product.quantity +  received_product_instance.quantity
+                    branch_product.save()
+                except:
+                    branch_product = Branch_Products.objects.create(branch=destination_branch , product=received_product_instance.product, quantity=0)
+                    branch_product.quantity = branch_product.quantity + received_product_instance.quantity
+                    branch_product.save()
+            else:
+                variant_instance = received_product_instance.product
+                variant_instance.quantity = variant_instance.quantity + received_product_instance.quantity
+                variant_instance.save()
+        transportation_instance.transportation_status = "confirmed"
+        transportation_instance.save()
+
+    except Transportation.DoesNotExist:
+        Response({"message" : "Transportation not found"} , status=status.HTTP_404_NOT_FOUND)
+
+    return Response({"message" : f'Transportation {pk} is confirmed' })
+

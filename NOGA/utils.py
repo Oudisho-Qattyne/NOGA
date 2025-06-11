@@ -2,6 +2,7 @@ from rest_framework import serializers
 from rest_framework.pagination import PageNumberPagination
 import qrcode
 from PIL import Image , ImageDraw
+import uuid
 
 class Paginator(PageNumberPagination):
     page_size = 10
@@ -37,6 +38,7 @@ def genereate(image_url , product):
  
 
 def generateQR(request , id , file_nameP , folder_name):
+    file_namep = file_nameP.replace(" ", "-")
     file_name = f"{file_nameP}-{id}.png"
     download_file_name = f"{file_nameP}-{id}-download.jpg"
     path = f'mediafiles/productqr'
@@ -52,3 +54,13 @@ def generateQR(request , id , file_nameP , folder_name):
     qr_code = f"{request.build_absolute_uri('/')}media/productqr/{file_name}"
     qr_codes_download = f"{request.build_absolute_uri('/')}media/productqr/{download_file_name}"
     return qr_code , qr_codes_download
+
+
+def generate_unique_code():
+    return str(uuid.uuid4())[:8]  # Adjust the length as needed
+
+def find_element_by_id(data_list, id):
+    for element in data_list:
+        if element.product.product.id == id:
+            return element
+    return None  # Return None if element with the ID is not found

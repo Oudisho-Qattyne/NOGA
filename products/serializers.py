@@ -2,6 +2,7 @@ from rest_framework import serializers
 from rest_framework.views import Response , status
 from .models import *
 from NOGA.utils import *
+from branches.models import Branch_Products
 from django.db.models.deletion import ProtectedError
 
 class UnitSerializer(serializers.ModelSerializer):
@@ -100,11 +101,16 @@ class CategorySerializer(serializers.ModelSerializer):
         self.fields['attributes'] = AttributeSerializer(many=True, read_only=True)  
         return super(CategorySerializer, self).to_representation(instance)
     
-
-class ProductSerializer(serializers.ModelSerializer):
+class LinkedProductsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
-        fields = ["id" , "product_name" , "category" , "qr_code" , "qr_codes_download"]
+        fields = ["id" , "product_name" , "category"]
+
+class ProductSerializer(serializers.ModelSerializer):
+    linked_products = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all() , many=True , required=False )
+    class Meta:
+        model = Product
+        fields = ["id" , "product_name" , "category" , "qr_code" , "qr_codes_download" , "linked_products"]
         extra_kwargs={
             "id":{
                 "read_only" : True
@@ -117,15 +123,19 @@ class ProductSerializer(serializers.ModelSerializer):
             }
         }
     def create(self, validated_data):
+        linked_products = validated_data.pop('linked_products' , [])
         product = Product.objects.create(**validated_data)
         qr_code , qr_codes_download = generateQR(self.context.get('request') , product.id , f'{product.category.category}-{product.product_name}' , product.category.category)
         product.qr_code = qr_code
         product.qr_codes_download = qr_codes_download
+        for linked_product in linked_products:
+            product.linked_products.add(linked_product)
         product.save()
         return product
     
     def to_representation(self, instance):
         self.fields['category'] = CategorySerializer(read_only=True)  
+        self.fields['linked_products'] = LinkedProductsSerializer(read_only=True , many=True)  
         return super(ProductSerializer, self).to_representation(instance)
 
     def update(self, instance, validated_data):
@@ -335,3 +345,146 @@ class VariantSerializers(serializers.ModelSerializer):
             return Response()
         except ProtectedError:
             return Response()
+    def to_representation(self, instance):
+        # self.fields['product'] = ProductSerializer(read_only=True) 
+        data = super(VariantSerializers, self).to_representation(instance) 
+        data['product'] = instance.product.product_name
+        data['category'] = instance.product.category.id
+        return data
+    
+class TransportedProductSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Transported_Products
+        fields = ["transportation" , "product" , 'quantity']
+        extra_kwargs={
+            "transportation":{
+                "required":False,
+                "write_only":True
+            }
+        }
+    def validate(self, attrs):
+        validated_data = super().validate(attrs)
+        # print(attrs)
+        transportation = attrs.get('transportation',None) or self.context.get('transportation',None)
+        variant = validated_data['product']
+        quantity = validated_data['quantity']
+        # transportation = validated_data['transportation']
+        print(transportation)
+        if transportation is not None:
+            if transportation.source != None:
+                try:
+                    variant = Branch_Products.objects.get(branch=transportation.source ,product=variant.product.id) 
+                except Branch_Products.DoesNotExist:
+                    raise serializers.ValidationError({variant.product.product.product_name : "This product does not exist in this branch"})
+        print(variant)
+        print(quantity)
+
+        if variant.quantity < quantity:
+            raise serializers.ValidationError({variant.product.product_name : "The amount transported greater than you have"})
+        
+        return validated_data
+
+    def to_representation(self, instance):
+        self.fields['product'] = VariantSerializers(read_only=True) 
+        data = super(TransportedProductSerializer, self).to_representation(instance) 
+        # data['product'] = instance.product.product.product_name
+        return data
+    
+class ReceivedProductSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Received_Products
+        fields = ["transportation" , "product" , 'quantity']
+        extra_kwargs={
+            "transportation":{
+                "required":False,
+                "write_only":True
+            }
+        }
+    def validate(self, attrs):
+        validated_data = super().validate(attrs)
+        transportation = validated_data['transportation']
+        transported_products = transportation.transported_products
+        ids = list(x.product.product.id for x in transported_products)
+        variant = validated_data['product']
+        quantity = validated_data['quantity']
+
+        if variant.id not in ids:
+            raise serializers.ValidationError({variant.product.product_name : "This product is not transported"})
+        transported_product = find_element_by_id(transported_products , variant.id)
+        
+        
+
+        if transported_product.quantity < quantity:
+            raise serializers.ValidationError({variant.product.product_name : "The amount received greater than transported"})
+        
+        return validated_data
+
+    def to_representation(self, instance):
+        self.fields['product'] = VariantSerializers(read_only=True) 
+        data = super(ReceivedProductSerializer, self).to_representation(instance) 
+        return data
+    
+class TransportationSerializer(serializers.ModelSerializer):
+    transported_products = TransportedProductSerializer(many=True)
+    received_products = ReceivedProductSerializer(many=True , required=False)
+    class Meta:
+        model = Transportation
+        fields = ["id" , "transportation_status" , "source" , "destination" , "code" , "transported_products" , "received_products"]
+        extra_kwargs={
+            "id":{
+                "read_only" : True
+            },
+            "source":{
+                "required":False
+            },
+            "code":{
+                "required":False
+            },
+            "destination" : {
+                "required":False,
+                "read_only" : False
+            },
+            "received_products":{
+                "read_only":True,
+                "required":False,
+
+            }
+        }
+    
+    def create(self, validated_data):
+        transported_products = validated_data.pop('transported_products',[])
+        transportation = super().create(validated_data)
+
+        for transported_product in transported_products:
+            variant_instance = transported_product['product']
+            if transportation.source != None:
+                variant_instance = Branch_Products.objects.get(branch=transportation.source ,product=variant_instance.product.id) 
+
+            transported_product['product'] = transported_product['product'].id
+            transported_product['transportation'] = transportation.id
+            transported_product_serialized = TransportedProductSerializer(data=transported_product , context={'transportation': transportation})
+            transported_product_serialized.is_valid(raise_exception=True)
+            # variant_instance = Variant.objects.get(id=transported_product.id)
+            transported_product_serialized.save()
+            variant_instance.quantity = variant_instance.quantity - transported_product['quantity']
+            variant_instance.save()
+        transportation.save()
+        return transportation
+    # def to_representation(self, instance):
+    #     self.fields['transported_products'] = TransportedProductSerializer(read_only=True)  
+    #     return super(TransportationSerializer, self).to_representation(instance)
+    def update(self, instance, validated_data):
+        if instance.transportation_status == 'packaging':
+            transported_products = validated_data.pop('transported_products',[])
+            transportation_instance = super().update(instance, validated_data)
+            Transported_Products.objects.filter(transportation = transportation_instance).delete()
+            for transported_product in transported_products:
+                transported_product['product'] = transported_product['product'].id
+                transported_product['transportation'] = transportation_instance.id
+                transported_product_serialized = TransportedProductSerializer(data=transported_product)
+                transported_product_serialized.is_valid(raise_exception=True)
+                transported_product_serialized.save()
+            transportation_instance.save()
+            return transportation_instance
+        else:
+            raise serializers.ValidationError({'message' : 'Transportation can`t be updated after transporting'})
