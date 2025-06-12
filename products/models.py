@@ -1,7 +1,5 @@
 from django.db import models
-
-
-
+from django.db.models import Avg
 # Create your models here.
 class Unit(models.Model):
     unit = models.CharField(max_length=50 , unique=True)
@@ -45,6 +43,10 @@ class Product(models.Model):
     qr_codes_download = models.CharField(max_length=300 , null=True , blank=True)
     def __str__(self) -> str:
         return self.product_name
+    
+    @property
+    def average_rating(self):
+        return self.reviews.aggregate(Avg('rating'))['rating__avg'] or 0
     
 class Varient(models.Model):
     product = models.ForeignKey(Product , on_delete=models.PROTECT)
