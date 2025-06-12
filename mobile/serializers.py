@@ -57,13 +57,9 @@ class UserSavedProductsSerializer(serializers.ModelSerializer):
     def get_saved_products(self,obj):
         saves=Save.objects.filter(user=obj).select_related('product')
         return[
-            {'product':ProductSimpleSerializer(save.product).data,
-             'saves_at':self.format_datetime(save.saves_at),}
+            {'product':ProductSimpleSerializer(save.product).data}
              for save in saves
         ]
-    def format_datetime(self,value):
-        return timezone.localtime(value).strftime('%Y-%m-%d %H:%M:%S')
-    
 class ReviewSerializer(serializers.ModelSerializer):
     user=serializers.StringRelatedField(read_only=True)
     rating_display=serializers.SerializerMethodField()
@@ -84,16 +80,6 @@ class ReviewSerializer(serializers.ModelSerializer):
             return serializers.ValidationError('the review have to be >1 & <5')
         return value
 
-    def get_reviews_time(self,obj):
-        reviews=Review.objects.filter(user=obj)
-        return [{
-            'created_at':self.format_datetime(review.created_at),
-            'updated_at':self.format_datetime(review.updated_at)}
-            for review in reviews]
-    
-    def format_datetime(self,value):
-        return timezone.localtime(value).strftime('%Y-%m-%d %H:%M:%S')
-    
 class ProductSimpleSerializer(serializers.ModelSerializer):
     save_count=serializers.SerializerMethodField()
     average_rating=serializers.SerializerMethodField()
