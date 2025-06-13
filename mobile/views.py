@@ -1,7 +1,5 @@
-from tkinter.tix import STATUS
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
-from rest_framework.views import APIView
 from rest_framework import generics,filters,viewsets,permissions,status
 from .models import *
 from .serializers import *
@@ -9,7 +7,7 @@ from rest_framework.permissions import IsAuthenticated
 from django_filters import rest_framework as filter
 from django.db.models import Prefetch
 from rest_framework.decorators import action
-from rest_framework.exceptions import NotFound,ValidationError
+from rest_framework.exceptions import ValidationError
 # Create your views here.
 
 
