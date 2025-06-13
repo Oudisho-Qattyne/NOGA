@@ -64,3 +64,9 @@ def find_element_by_id(data_list, id):
         if element.product.product.id == id:
             return element
     return None  # Return None if element with the ID is not found
+
+def find_element_by_id2(data_list, id):
+    for element in data_list:
+        if element['product'] == id:
+            return element
+    return None  # Return None if element with the ID is not found

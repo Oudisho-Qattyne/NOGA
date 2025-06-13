@@ -32,8 +32,8 @@ class Option(models.Model):
 
     
 class Option_Unit(models.Model):
-    option = models.OneToOneField(Option , on_delete=models.CASCADE)
-    unit = models.OneToOneField(Unit ,  on_delete=models.CASCADE)
+    option = models.ForeignKey(Option , on_delete=models.CASCADE)
+    unit = models.ForeignKey(Unit ,  on_delete=models.CASCADE)
 
 class Category(models.Model):
     category = models.CharField(max_length=100 , unique=True)
@@ -71,8 +71,6 @@ class Variant(models.Model):
 class Variant_Option(models.Model):
     variant = models.ForeignKey(Variant , on_delete=models.PROTECT)
     option = models.ForeignKey(Option , on_delete=models.CASCADE)
-
-
     
 
 class Transportation(models.Model):
@@ -86,6 +84,8 @@ class Transportation(models.Model):
     source = models.ForeignKey(Branch , on_delete=models.CASCADE , null=True , related_name="from_branch")
     destination = models.ForeignKey(Branch , on_delete=models.CASCADE , null=True  , related_name="to_branch")
     code = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+
     @property
     def transported_products(self):
         return self.transported_products_set.all()
@@ -109,3 +109,30 @@ class Received_Products(models.Model):
     transportation = models.ForeignKey(Transportation , on_delete=models.PROTECT)
     product = models.ForeignKey(Variant , on_delete=models.PROTECT , null=False)
     quantity = models.PositiveIntegerField()
+
+class Transport_Request(models.Model):
+    REQUEST_STATUS_TYPES=[
+        ('fully-approved','fully-approved'),
+        ('partially-approved','partially-approved'),
+        ('waiting','waiting'),
+        ('rejected','rejected'),
+    ]
+    request_status = models.CharField(max_length=30 , choices=REQUEST_STATUS_TYPES , default='waiting')
+    branch = models.ForeignKey(Branch , on_delete=models.PROTECT)
+    transportation = models.ForeignKey(Transportation , on_delete=models.PROTECT , null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    @property
+    def requested_products(self):
+        return self.requested_products_set.all()
+    
+class Requested_Products(models.Model):
+    PRODUCT_REQUEST_STATUS_TYPES=[
+        ('fully-approved','fully-approved'),
+        ('partially-approved','partially-approved'),
+        ('waiting','waiting'),
+        ('rejected','rejected'),
+    ]
+    request = models.ForeignKey(Transport_Request , on_delete=models.PROTECT)
+    product_request_status = models.CharField(max_length=30 , choices=PRODUCT_REQUEST_STATUS_TYPES , default='waiting')
+    product = models.ForeignKey(Variant , on_delete=models.PROTECT , null=False)
+    quantity = models.PositiveIntegerField(default=0)

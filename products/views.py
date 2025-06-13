@@ -8,7 +8,8 @@ from rest_framework import filters
 from django_filters import rest_framework as filter
 from NOGA.utils import *
 from rest_framework.decorators import api_view , permission_classes
-
+from .filters import *
+from django.db.models import Q
 # Create your views here.
 
 
@@ -114,7 +115,48 @@ class OptionAPIView(generics.DestroyAPIView , generics.UpdateAPIView , generics.
 class VariantsAPIView(generics.ListAPIView , generics.CreateAPIView):
     queryset = Variant.objects.all()
     serializer_class = VariantSerializers
+    filter_backends=[filter.DjangoFilterBackend , filters.SearchFilter , filters.OrderingFilter]
+    filterset_class = VariantFilter  
+    pagination_class = Paginator
+    search_fields = [
+        "id",
+        "product__product_name",
+        "quantity",
+        "selling_price",
+        "wholesale_price",
+        "options__option",
+        # "options__unit__unit",
+        "options__attribute__attribute", 
+    ]
+    ordering_fields = [
+        "id",
+        "product__product_name",
+        "quantity",
+        "selling_price",
+        "wholesale_price",
+        "options__option",
+        # "options__unit__unit",
+        "options__attribute__attribute",
+    ]
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        filters = {}
+        attribute_names = Attribute.objects.values_list('attribute', flat=True)
 
+        # Convert the QuerySet to a list
+        attribute_names_list = list(attribute_names)
+        for key, value in self.request.query_params.items():
+            if key in attribute_names_list: 
+                filters[f'options__attribute__attribute'] = key
+                filters[f'options__option'] = value
+
+        if filters:
+            query = Q()
+            for key, value in filters.items():
+                query &= Q(**{key: value})
+            queryset = queryset.filter(query)
+
+        return queryset
 class VariantAPIView(generics.DestroyAPIView , generics.UpdateAPIView , generics.RetrieveAPIView):
     queryset = Variant.objects.all()
     serializer_class = VariantSerializers
@@ -137,6 +179,32 @@ class TransportationsAPIView( generics.CreateAPIView , generics.ListAPIView ):
 class TransportationAPIView(generics.DestroyAPIView , generics.UpdateAPIView , generics.RetrieveAPIView):
     queryset = Transportation.objects.all()
     serializer_class = TransportationSerializer
+    def delete(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            if instance.transportation_status == "packaging":
+                Transported_Products.objects.filter(transportation = instance).delete()
+                transport_request_instances = Transport_Request.objects.filter(transportation = instance)
+                for transport_request_instance in transport_request_instances: 
+                    transport_request_instance.request_status = "waiting"
+                    for transported_product in transport_request_instance.requested_products:
+                        variant_instance = transported_product.product
+                        if instance.source != None:
+                            variant_instance = Branch_Products.objects.get(branch=instance.source ,product=variant_instance.product.id)
+                        variant_instance.quantity = variant_instance.quantity +  transported_product.quantity
+                        variant_instance.save()
+                        transported_product.product_request_status = "waiting"
+                        transported_product.save()
+                    transport_request_instance.transportation = None
+                    transport_request_instance.save()
+                
+                super().delete(request, *args, **kwargs)
+                return Response({"message": "Transportation deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+            else :
+                return Response({"message": "'The transportation cannot be deleted after it has been transported.'"}, status=status.HTTP_400_BAD_REQUEST)
+
+        except ProtectedError:
+            return Response({"message": "Transportation can't be deleted"}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['POST'])
 def TransportProducts(request , pk):
@@ -238,3 +306,83 @@ def ConfirmTransportation(request , pk):
 
     return Response({"message" : f'Transportation {pk} is confirmed' })
 
+class TransportRequestsAPIView(generics.ListAPIView , generics.CreateAPIView):
+    queryset = Transport_Request.objects.all()
+    serializer_class = TransportRequestSerializer
+    
+
+class TransportRequestAPIView(generics.DestroyAPIView , generics.UpdateAPIView):
+    queryset = Transport_Request.objects.all()
+    serializer_class = TransportRequestSerializer
+    def delete(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            if instance.request_status == "waiting":
+                Requested_Products.objects.filter(request=instance).delete()
+                super().delete(request, *args, **kwargs)
+                return Response({"message": "Request deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+            else :
+                return Response({"message": "'The request cannot be deleted after it has been processed.'"}, status=status.HTTP_400_BAD_REQUEST)
+
+        except ProtectedError:
+            return Response({"message": "Request can't be deleted"}, status=status.HTTP_400_BAD_REQUEST)
+        
+
+@api_view(['POST'])
+def ProcessTransportRequest(request , pk):
+    data =None
+    transported_products = request.data.get('transported_products' , [])
+    if transported_products is None:
+        return Response({"transported_products":"This field is required" }, status=status.HTTP_400_BAD_REQUEST)
+    if  type(transported_products) != list:
+        return Response({"transported_products":"Expected a list of items" }, status=status.HTTP_400_BAD_REQUEST)
+    if  len(transported_products) == 0:
+        return Response({"transported_products":"This list is empty" }, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        transport_request = Transport_Request.objects.get(id=pk)
+        transportation_data = {
+        "transported_products":transported_products,
+        "destination":transport_request.branch.id,
+
+        }
+        transportation_serialized_data = TransportationSerializer(data=transportation_data)
+        valid = transportation_serialized_data.is_valid(raise_exception=True)
+        requested_products_instances = transport_request.requested_products
+        # transported_products_ids = list(product['product'] for product in transported_products)
+
+        is_fully_approved = True
+        is_rejected = True
+        if valid:
+            transportation_instance = transportation_serialized_data.save()
+            for requested_product in requested_products_instances:
+                transported_product = find_element_by_id2(transported_products , requested_product.product.id )
+                if transported_product is not None:
+                    if transported_product['quantity'] >= requested_product.quantity:
+                        requested_product.product_request_status = "fully-approved"
+                        is_rejected = False
+                    else:
+                        requested_product.product_request_status = "partially-approved"
+                        is_fully_approved = False
+                        is_rejected = False
+                else:
+                    requested_product.product_request_status = "rejected"
+                    is_fully_approved = False
+                requested_product.save()
+            if is_fully_approved:
+                transport_request.request_status = "fully-approved"
+            elif is_rejected:
+                transport_request.request_status = "rejected"
+            else:
+                transport_request.request_status = "partially-approved"
+            transport_request.transportation = transportation_instance
+            transport_request.save()
+            transport_request_seriaized_data = TransportRequestSerializer(transport_request)
+            data = transport_request_seriaized_data.data
+
+    except Transport_Request.DoesNotExist:
+        return Response({"message" : "Request not found"} , status=status.HTTP_404_NOT_FOUND)
+    return Response( data, status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+def RejectTransportRequest(request , pk):
+    return Response()

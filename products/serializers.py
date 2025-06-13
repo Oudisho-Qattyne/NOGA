@@ -339,12 +339,7 @@ class VariantSerializers(serializers.ModelSerializer):
         # variant_instance.save()
         return variant_instance
    
-    def delete(self, request, *args, **kwargs):
-        try:
-            self.object.delete()
-            return Response()
-        except ProtectedError:
-            return Response()
+    
     def to_representation(self, instance):
         # self.fields['product'] = ProductSerializer(read_only=True) 
         data = super(VariantSerializers, self).to_representation(instance) 
@@ -355,7 +350,7 @@ class VariantSerializers(serializers.ModelSerializer):
 class TransportedProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Transported_Products
-        fields = ["transportation" , "product" , 'quantity']
+        fields = ["id" , "transportation" , "product" , 'quantity' ]
         extra_kwargs={
             "transportation":{
                 "required":False,
@@ -369,16 +364,12 @@ class TransportedProductSerializer(serializers.ModelSerializer):
         variant = validated_data['product']
         quantity = validated_data['quantity']
         # transportation = validated_data['transportation']
-        print(transportation)
         if transportation is not None:
             if transportation.source != None:
                 try:
                     variant = Branch_Products.objects.get(branch=transportation.source ,product=variant.product.id) 
                 except Branch_Products.DoesNotExist:
                     raise serializers.ValidationError({variant.product.product.product_name : "This product does not exist in this branch"})
-        print(variant)
-        print(quantity)
-
         if variant.quantity < quantity:
             raise serializers.ValidationError({variant.product.product_name : "The amount transported greater than you have"})
         
@@ -393,7 +384,7 @@ class TransportedProductSerializer(serializers.ModelSerializer):
 class ReceivedProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Received_Products
-        fields = ["transportation" , "product" , 'quantity']
+        fields = ["id" , "transportation" , "product" , 'quantity']
         extra_kwargs={
             "transportation":{
                 "required":False,
@@ -429,7 +420,7 @@ class TransportationSerializer(serializers.ModelSerializer):
     received_products = ReceivedProductSerializer(many=True , required=False)
     class Meta:
         model = Transportation
-        fields = ["id" , "transportation_status" , "source" , "destination" , "code" , "transported_products" , "received_products"]
+        fields = ["id" , "transportation_status" , "source" , "destination" , "code" , "transported_products" , "received_products" , "created_at"]
         extra_kwargs={
             "id":{
                 "read_only" : True
@@ -448,6 +439,10 @@ class TransportationSerializer(serializers.ModelSerializer):
                 "read_only":True,
                 "required":False,
 
+            },
+            "created_at":{
+                "required":False,
+                "read_only":True
             }
         }
     
@@ -477,14 +472,123 @@ class TransportationSerializer(serializers.ModelSerializer):
         if instance.transportation_status == 'packaging':
             transported_products = validated_data.pop('transported_products',[])
             transportation_instance = super().update(instance, validated_data)
-            Transported_Products.objects.filter(transportation = transportation_instance).delete()
+            #return old transported products 
+            old_transported_products = Transported_Products.objects.filter(transportation = instance)
+            for old_transported_product in old_transported_products:
+                variant_instance = old_transported_product.product
+                if instance.source != None:
+                    variant_instance = Branch_Products.objects.get(branch=instance.source ,product=variant_instance.product.id) 
+                # print("test")
+                # print(  old_transported_product.quantity )
+                variant_instance.quantity = variant_instance.quantity + old_transported_product.quantity
+                old_transported_product.delete()
+                variant_instance.save()
+            
             for transported_product in transported_products:
+                variant_instance2 = transported_product['product']
+                if transportation_instance.source != None:
+                    variant_instance2 = Branch_Products.objects.get(branch=transportation_instance.source ,product=variant_instance.product.id) 
+
                 transported_product['product'] = transported_product['product'].id
                 transported_product['transportation'] = transportation_instance.id
                 transported_product_serialized = TransportedProductSerializer(data=transported_product)
                 transported_product_serialized.is_valid(raise_exception=True)
                 transported_product_serialized.save()
+                print( variant_instance2.quantity )
+                print(  transported_product['quantity'])
+                variant_instance2.quantity = variant_instance.quantity - transported_product['quantity']
+                variant_instance2.save()     
             transportation_instance.save()
+
+            # check for produt requests for this transportation
+            transport_request_instances = Transport_Request.objects.filter(transportation = transportation_instance)
+            for transport_request in transport_request_instances:
+                requested_products_instances = transport_request.requested_products
+                 # transported_products_ids = list(product['product'] for product in transported_products)
+
+                is_fully_approved = True
+                is_rejected = True
+                for requested_product in requested_products_instances:
+                    transported_product = find_element_by_id2(transported_products , requested_product.product.id )
+                    if transported_product is not None:
+                        if transported_product['quantity'] >= requested_product.quantity:
+                            requested_product.product_request_status = "fully-approved"
+                            is_rejected = False
+                        else:
+                            requested_product.product_request_status = "partially-approved"
+                            is_fully_approved = False
+                            is_rejected = False
+                    else:
+                        requested_product.product_request_status = "rejected"
+                        is_fully_approved = False
+                    requested_product.save()
+                if is_fully_approved:
+                    transport_request.request_status = "fully-approved"
+                elif is_rejected:
+                    transport_request.request_status = "rejected"
+                else:
+                    transport_request.request_status = "partially-approved"
+                transport_request.transportation = transportation_instance
+                transport_request.save()
             return transportation_instance
         else:
-            raise serializers.ValidationError({'message' : 'Transportation can`t be updated after transporting'})
+            raise serializers.ValidationError({'message' : 'The transfer cannot be updated after it has been sent.'})
+    
+class RequestedProductsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Requested_Products
+        fields =["id" , "request" , "product_request_status" , "product" , "quantity"]
+        extra_kwargs={
+            "request":{
+                "required":False,
+                "write_only":True
+            },
+            "request_status":{
+                "read_only":True
+            }
+        }
+
+class TransportRequestSerializer(serializers.ModelSerializer):
+    requested_products = RequestedProductsSerializer(many=True)
+    transportation = TransportationSerializer(required = False)
+    class Meta:
+        model = Transport_Request
+        fields = ["id" , "request_status" , "branch" , "requested_products" , "transportation" , "created_at"]
+        extra_kwargs = {
+            "transportation":{
+                "read_only":True,
+                "required":False
+            },
+            "created_at":{
+                "required":False,
+                "read_only":True
+            }
+        }
+    def create(self, validated_data):
+        requested_products = validated_data.pop("requested_products" , [])
+        transport_request_instance = super().create(validated_data)
+        for requested_product in requested_products:
+            requested_product['request'] = transport_request_instance.id
+            requested_product['product'] = requested_product['product'].id
+            requested_product_serialized_data = RequestedProductsSerializer(data=requested_product)
+            requested_product_serialized_data.is_valid(raise_exception=True)
+            requested_product_instance = requested_product_serialized_data.save()
+        transport_request_instance.save()
+        return transport_request_instance
+    
+    def update(self, instance, validated_data):
+        if instance.request_status == 'waiting':
+            requested_products = validated_data.pop('requested_products',[])
+            transport_request_instance = super().update(instance, validated_data)
+            Requested_Products.objects.filter(request = transport_request_instance).delete()
+            for requested_product in requested_products:
+                requested_product['product'] = requested_product['product'].id
+                requested_product['request'] =  transport_request_instance.id
+                requested_product_serialized = RequestedProductsSerializer(data=requested_product)
+                requested_product_serialized.is_valid(raise_exception=True)
+                requested_product_serialized.save()
+            transport_request_instance.save()
+            return transport_request_instance
+        else:
+            raise serializers.ValidationError({'message' : 'The request cannot be updated after it has been processed.'})
+

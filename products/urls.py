@@ -26,4 +26,9 @@ urlpatterns = [
     path('transportations/<int:pk>/receive' ,ReceiveTransportation),
     path('transportations/<int:pk>/confirm' ,ConfirmTransportation),
 
+    path('requests',TransportRequestsAPIView.as_view()),
+    path('requests/<int:pk>',TransportRequestAPIView.as_view()),
+    path('requests/<int:pk>/process',ProcessTransportRequest),
+    path('requests/<int:pk>/reject-all',RejectTransportRequest)
+
 ]
