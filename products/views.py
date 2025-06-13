@@ -10,6 +10,7 @@ from NOGA.utils import *
 from rest_framework.decorators import api_view , permission_classes
 from .filters import *
 from django.db.models import Q
+from django.utils import timezone
 # Create your views here.
 
 
@@ -127,6 +128,7 @@ class VariantsAPIView(generics.ListAPIView , generics.CreateAPIView):
         "options__option",
         # "options__unit__unit",
         "options__attribute__attribute", 
+        "sku"
     ]
     ordering_fields = [
         "id",
@@ -137,6 +139,7 @@ class VariantsAPIView(generics.ListAPIView , generics.CreateAPIView):
         "options__option",
         # "options__unit__unit",
         "options__attribute__attribute",
+        "sku"
     ]
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -175,6 +178,7 @@ class VariantAPIView(generics.DestroyAPIView , generics.UpdateAPIView , generics
 class TransportationsAPIView( generics.CreateAPIView , generics.ListAPIView ):
     queryset = Transportation.objects.all()
     serializer_class = TransportationSerializer
+    pagination_class = Paginator
 
 class TransportationAPIView(generics.DestroyAPIView , generics.UpdateAPIView , generics.RetrieveAPIView):
     queryset = Transportation.objects.all()
@@ -217,6 +221,7 @@ def TransportProducts(request , pk):
             return Response({"Transportation" : "Transportation is not packed yet"} , status=status.HTTP_400_BAD_REQUEST)
 
         transportation_instance.transportation_status = "transporting"
+        transportation_instance.transported_at = timezone.now()
         transportation_instance.save()
 
     except Transportation.DoesNotExist:
@@ -244,6 +249,7 @@ def ReceiveTransportation(request , pk):
             return Response({"code" : "The code does not match"} , status=status.HTTP_400_BAD_REQUEST)
         
         transportation_instance.transportation_status = "delivered"
+        transportation_instance.received_at = timezone.now()
         transportation_instance.save()
 
     except Transportation.DoesNotExist:
@@ -309,6 +315,7 @@ def ConfirmTransportation(request , pk):
 class TransportRequestsAPIView(generics.ListAPIView , generics.CreateAPIView):
     queryset = Transport_Request.objects.all()
     serializer_class = TransportRequestSerializer
+    pagination_class = Paginator
     
 
 class TransportRequestAPIView(generics.DestroyAPIView , generics.UpdateAPIView):
@@ -340,44 +347,47 @@ def ProcessTransportRequest(request , pk):
         return Response({"transported_products":"This list is empty" }, status=status.HTTP_400_BAD_REQUEST)
     try:
         transport_request = Transport_Request.objects.get(id=pk)
-        transportation_data = {
-        "transported_products":transported_products,
-        "destination":transport_request.branch.id,
+        if transport_request.request_status != "waiting":
+            transportation_data = {
+            "transported_products":transported_products,
+            "destination":transport_request.branch.id,
 
-        }
-        transportation_serialized_data = TransportationSerializer(data=transportation_data)
-        valid = transportation_serialized_data.is_valid(raise_exception=True)
-        requested_products_instances = transport_request.requested_products
-        # transported_products_ids = list(product['product'] for product in transported_products)
+            }
+            transportation_serialized_data = TransportationSerializer(data=transportation_data)
+            valid = transportation_serialized_data.is_valid(raise_exception=True)
+            requested_products_instances = transport_request.requested_products
+            # transported_products_ids = list(product['product'] for product in transported_products)
 
-        is_fully_approved = True
-        is_rejected = True
-        if valid:
-            transportation_instance = transportation_serialized_data.save()
-            for requested_product in requested_products_instances:
-                transported_product = find_element_by_id2(transported_products , requested_product.product.id )
-                if transported_product is not None:
-                    if transported_product['quantity'] >= requested_product.quantity:
-                        requested_product.product_request_status = "fully-approved"
-                        is_rejected = False
+            is_fully_approved = True
+            is_rejected = True
+            if valid:
+                transportation_instance = transportation_serialized_data.save()
+                for requested_product in requested_products_instances:
+                    transported_product = find_element_by_id2(transported_products , requested_product.product.id )
+                    if transported_product is not None:
+                        if transported_product['quantity'] >= requested_product.quantity:
+                            requested_product.product_request_status = "fully-approved"
+                            is_rejected = False
+                        else:
+                            requested_product.product_request_status = "partially-approved"
+                            is_fully_approved = False
+                            is_rejected = False
                     else:
-                        requested_product.product_request_status = "partially-approved"
+                        requested_product.product_request_status = "rejected"
                         is_fully_approved = False
-                        is_rejected = False
+                    requested_product.save()
+                if is_fully_approved:
+                    transport_request.request_status = "fully-approved"
+                elif is_rejected:
+                    transport_request.request_status = "rejected"
                 else:
-                    requested_product.product_request_status = "rejected"
-                    is_fully_approved = False
-                requested_product.save()
-            if is_fully_approved:
-                transport_request.request_status = "fully-approved"
-            elif is_rejected:
-                transport_request.request_status = "rejected"
-            else:
-                transport_request.request_status = "partially-approved"
-            transport_request.transportation = transportation_instance
-            transport_request.save()
-            transport_request_seriaized_data = TransportRequestSerializer(transport_request)
-            data = transport_request_seriaized_data.data
+                    transport_request.request_status = "partially-approved"
+                transport_request.transportation = transportation_instance
+                transport_request.save()
+                transport_request_seriaized_data = TransportRequestSerializer(transport_request)
+                data = transport_request_seriaized_data.data
+        else:
+            return Response({"Request" : "This request has already been processed"} , status=status.HTTP_400_BAD_REQUEST)
 
     except Transport_Request.DoesNotExist:
         return Response({"message" : "Request not found"} , status=status.HTTP_404_NOT_FOUND)
@@ -385,4 +395,20 @@ def ProcessTransportRequest(request , pk):
 
 @api_view(['POST'])
 def RejectTransportRequest(request , pk):
-    return Response()
+    try:
+        transport_request = Transport_Request.objects.get(id=pk)
+        if transport_request.request_status == "waiting":
+            requested_products_instances = transport_request.requested_products
+            for requested_product in requested_products_instances:
+                requested_product.product_request_status = "rejected"
+                requested_product.save()
+            transport_request.request_status = "rejected"
+            transport_request.save()
+            transport_request_seriaized_data = TransportRequestSerializer(transport_request)
+            data = transport_request_seriaized_data.data
+        else:
+            return Response({"Request" : "This request has already been processed"} , status=status.HTTP_400_BAD_REQUEST)
+    except Transport_Request.DoesNotExist:
+        return Response({"message" : "Request not found"} , status=status.HTTP_404_NOT_FOUND)
+
+    return Response( data, status=status.HTTP_200_OK)

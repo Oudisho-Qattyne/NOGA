@@ -3,7 +3,7 @@ from rest_framework.pagination import PageNumberPagination
 import qrcode
 from PIL import Image , ImageDraw
 import uuid
-
+from products.models import Option_Unit
 class Paginator(PageNumberPagination):
     page_size = 10
     page_size_query_param = 'page_size'
@@ -70,3 +70,15 @@ def find_element_by_id2(data_list, id):
         if element['product'] == id:
             return element
     return None  # Return None if element with the ID is not found
+
+def generate_sku(product_name ,options):
+    option_unit_list = [product_name]
+    for option, unit in options.values_list('option', 'option_unit'):
+        print(unit)
+        if unit:
+            option_unit= Option_Unit.objects.get(id=unit).unit.unit
+            option_unit_list.append(f"{option}{option_unit}")
+        else:
+            option_unit_list.append(option)
+    sku = "-".join(option_unit_list)
+    return sku

@@ -106,45 +106,6 @@ class LinkedProductsSerializer(serializers.ModelSerializer):
         model = Product
         fields = ["id" , "product_name" , "category"]
 
-class ProductSerializer(serializers.ModelSerializer):
-    linked_products = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all() , many=True , required=False )
-    class Meta:
-        model = Product
-        fields = ["id" , "product_name" , "category" , "qr_code" , "qr_codes_download" , "linked_products"]
-        extra_kwargs={
-            "id":{
-                "read_only" : True
-            },
-            "qr_code":{
-                "required":False
-            },
-            "qr_codes_download":{
-                "required":False
-            }
-        }
-    def create(self, validated_data):
-        linked_products = validated_data.pop('linked_products' , [])
-        product = Product.objects.create(**validated_data)
-        qr_code , qr_codes_download = generateQR(self.context.get('request') , product.id , f'{product.category.category}-{product.product_name}' , product.category.category)
-        product.qr_code = qr_code
-        product.qr_codes_download = qr_codes_download
-        for linked_product in linked_products:
-            product.linked_products.add(linked_product)
-        product.save()
-        return product
-    
-    def to_representation(self, instance):
-        self.fields['category'] = CategorySerializer(read_only=True)  
-        self.fields['linked_products'] = LinkedProductsSerializer(read_only=True , many=True)  
-        return super(ProductSerializer, self).to_representation(instance)
-
-    def update(self, instance, validated_data):
-        variants = Variant.objects.filter(product=instance) 
-        if(len(variants.values_list()) != 0):
-            if instance.category != validated_data['category']:
-                raise serializers.ValidationError({"error": "Cannot update category as there are variants associated with the product."})
-        return super().update(instance, validated_data)
-    
 
 class OptionUnitSerializer(serializers.ModelSerializer):
     unit = UnitSerializer()
@@ -237,8 +198,12 @@ class VariantSerializers(serializers.ModelSerializer):
     options = OptionSerializer(many=True , required=True)
     class Meta:
         model=Variant
-        fields = ["id" , "product" , "quantity" , "wholesale_price" , "selling_price" , "options"]
-    
+        fields = ["id" , "product" , "quantity" , "wholesale_price" , "selling_price" , "options" , "sku"]
+        extra_kwargs={
+            "sku":{
+                "read_only":True
+            }
+        }
     def validate(self, attrs):
         options = attrs.get('options' , [])
         validated_data = super().validate(attrs)
@@ -311,6 +276,7 @@ class VariantSerializers(serializers.ModelSerializer):
                 option_serialized_data.is_valid(raise_exception=True)
                 option_instance =  option_serialized_data.save()
             variant_instance.options.add(option_instance)
+        variant_instance.sku = generate_sku(variant_instance.product.product_name, variant_instance.options)
         variant_instance.save()
         
         return variant_instance
@@ -337,6 +303,8 @@ class VariantSerializers(serializers.ModelSerializer):
                 option_instance =  option_serialized_data.save()
             variant_instance.options.add(option_instance)
         # variant_instance.save()
+        variant_instance.sku = generate_sku(variant_instance.product.product_name, variant_instance.options)
+
         return variant_instance
    
     
@@ -344,9 +312,52 @@ class VariantSerializers(serializers.ModelSerializer):
         # self.fields['product'] = ProductSerializer(read_only=True) 
         data = super(VariantSerializers, self).to_representation(instance) 
         data['product'] = instance.product.product_name
-        data['category'] = instance.product.category.id
+        data['category'] = instance.product.category.category
         return data
+
+class ProductSerializer(serializers.ModelSerializer):
+    linked_products = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all() , many=True , required=False )
+    variants = VariantSerializers(many=True , required=False , read_only=True)
+    class Meta:
+        model = Product
+        fields = ["id" , "product_name" , "category" , "qr_code" , "qr_codes_download" , "linked_products" , "variants"]
+        extra_kwargs={
+            "id":{
+                "read_only" : True
+            },
+            "qr_code":{
+                "required":False
+            },
+            "qr_codes_download":{
+                "required":False
+            }
+        }
+    def create(self, validated_data):
+        linked_products = validated_data.pop('linked_products' , [])
+        product = Product.objects.create(**validated_data)
+        qr_code , qr_codes_download = generateQR(self.context.get('request') , product.id , f'{product.category.category}-{product.product_name}' , product.category.category)
+        product.qr_code = qr_code
+        product.qr_codes_download = qr_codes_download
+        for linked_product in linked_products:
+            product.linked_products.add(linked_product)
+        product.save()
+        return product
     
+    def to_representation(self, instance):
+        self.fields['category'] = CategorySerializer(read_only=True)  
+        self.fields['linked_products'] = LinkedProductsSerializer(read_only=True , many=True)  
+        return super(ProductSerializer, self).to_representation(instance)
+
+    def update(self, instance, validated_data):
+        variants = Variant.objects.filter(product=instance) 
+        if(len(variants.values_list()) != 0):
+            if instance.category != validated_data['category']:
+                raise serializers.ValidationError({"error": "Cannot update category as there are variants associated with the product."})
+        return super().update(instance, validated_data)
+    
+
+
+
 class TransportedProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Transported_Products
@@ -420,7 +431,7 @@ class TransportationSerializer(serializers.ModelSerializer):
     received_products = ReceivedProductSerializer(many=True , required=False)
     class Meta:
         model = Transportation
-        fields = ["id" , "transportation_status" , "source" , "destination" , "code" , "transported_products" , "received_products" , "created_at"]
+        fields = ["id" , "transportation_status" , "source" , "destination" , "code" , "transported_products" , "received_products" , "created_at" , "transported_at" , "received_at"]
         extra_kwargs={
             "id":{
                 "read_only" : True

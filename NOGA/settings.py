@@ -176,7 +176,9 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.TokenAuthentication' ,
         'rest_framework.authentication.SessionAuthentication' ,
-    )
+    ),
+    'DATETIME_FORMAT': "%Y-%m-%d %H:%M:%S",  # مثال لصيغة: 2025-06-13 18:00:00
+    # يمكنك استخدام أي صيغة تدعمها مكتبة Python datetime.strftime
 }
 
 STATIC_URL = 'static/'

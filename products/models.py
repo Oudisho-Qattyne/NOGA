@@ -54,6 +54,9 @@ class Product(models.Model):
     qr_code = models.CharField(max_length=300 , null=True , blank=True)
     qr_codes_download = models.CharField(max_length=300 , null=True , blank=True)
     linked_products = models.ManyToManyField("Product")
+    @property
+    def variants(self):
+        return self.variant_set.all()
     def __str__(self) -> str:
         return self.product_name
     
@@ -67,6 +70,9 @@ class Variant(models.Model):
     wholesale_price = models.FloatField()
     selling_price = models.FloatField()
     options = models.ManyToManyField(Option , through='Variant_Option')
+    sku = models.CharField(max_length=300)
+    
+    
 
 class Variant_Option(models.Model):
     variant = models.ForeignKey(Variant , on_delete=models.PROTECT)
@@ -85,6 +91,8 @@ class Transportation(models.Model):
     destination = models.ForeignKey(Branch , on_delete=models.CASCADE , null=True  , related_name="to_branch")
     code = models.CharField(max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
+    transported_at = models.DateTimeField(null=True)
+    received_at = models.DateTimeField(null=True)
 
     @property
     def transported_products(self):
