@@ -5,6 +5,7 @@ from NOGA.utils import *
 from branches.models import Branch_Products
 from django.db.models.deletion import ProtectedError
 
+
 class UnitSerializer(serializers.ModelSerializer):
     class Meta:
         model=Unit
@@ -178,7 +179,7 @@ class OptionSerializer(serializers.ModelSerializer):
             try:
                 Option_Unit.objects.filter(option=instance , unit = unit_instance).delete()
             except Option_Unit.DoesNotExist:
-                print('')
+                pass
         return instance
     
     def to_representation(self, instance):
@@ -196,9 +197,11 @@ class OptionSerializer(serializers.ModelSerializer):
     
 class VariantSerializers(serializers.ModelSerializer):
     options = OptionSerializer(many=True , required=True)
+    discount = serializers.SerializerMethodField()
+    total = serializers.SerializerMethodField()
     class Meta:
         model=Variant
-        fields = ["id" , "product" , "quantity" , "wholesale_price" , "selling_price" , "options" , "sku"]
+        fields = ["id" , "product" , "quantity" , "wholesale_price" , "selling_price" , "options" , "sku" , "discount" , "total"]
         extra_kwargs={
             "sku":{
                 "read_only":True
@@ -306,7 +309,14 @@ class VariantSerializers(serializers.ModelSerializer):
         variant_instance.sku = generate_sku(variant_instance.product.product_name, variant_instance.options)
 
         return variant_instance
-   
+
+    def get_discount(self,variant):
+        data = calculate_discount(self , variant)
+        return data['discount']
+
+    def get_total(self,variant):
+        data = calculate_discount(self , variant)
+        return data['total']
     
     def to_representation(self, instance):
         # self.fields['product'] = ProductSerializer(read_only=True) 

@@ -1,6 +1,12 @@
 from django.db import models
 from branches.models import Branch
-from NOGA.utils import *
+# from NOGA.utils import *
+import uuid
+
+
+
+def generate_unique_code():
+    return str(uuid.uuid4())[:8]  # Adjust the length as needed
 
 # Create your models here.
 class Unit(models.Model):

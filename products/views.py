@@ -347,7 +347,7 @@ def ProcessTransportRequest(request , pk):
         return Response({"transported_products":"This list is empty" }, status=status.HTTP_400_BAD_REQUEST)
     try:
         transport_request = Transport_Request.objects.get(id=pk)
-        if transport_request.request_status != "waiting":
+        if transport_request.request_status == "waiting":
             transportation_data = {
             "transported_products":transported_products,
             "destination":transport_request.branch.id,
