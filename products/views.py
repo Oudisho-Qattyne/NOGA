@@ -181,7 +181,7 @@ class TransportationsAPIView( generics.CreateAPIView , generics.ListAPIView ):
     pagination_class = Paginator
 
 class TransportationAPIView(generics.DestroyAPIView , generics.UpdateAPIView , generics.RetrieveAPIView):
-    queryset = Transportation.objects.all()
+    queryset = Transportation.objects.all().order_by('-created_at')
     serializer_class = TransportationSerializer
     def delete(self, request, *args, **kwargs):
         try:
@@ -313,7 +313,7 @@ def ConfirmTransportation(request , pk):
     return Response({"message" : f'Transportation {pk} is confirmed' })
 
 class TransportRequestsAPIView(generics.ListAPIView , generics.CreateAPIView):
-    queryset = Transport_Request.objects.all()
+    queryset = Transport_Request.objects.all().order_by('-created_at')
     serializer_class = TransportRequestSerializer
     pagination_class = Paginator
     
