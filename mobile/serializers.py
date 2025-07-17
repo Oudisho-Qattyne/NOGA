@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import *
 from products.models import Product
-from django.utils import timezone
+from django.db.models import Avg
 class ClientProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model=Client_Profile
@@ -91,5 +91,6 @@ class ProductSimpleSerializer(serializers.ModelSerializer):
     def get_save_count(self,obj):
         return obj.save_set.count()
     def get_average_rating(self,obj):
-        return round(obj.average_rating,2) if obj.average_rating else 0
+        avg=obj.reviews.aggregate(avg_rating=Avg('rating'))['avg_rating']
+        return round(avg,2) if avg else 0
     

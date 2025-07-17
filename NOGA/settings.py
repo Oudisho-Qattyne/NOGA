@@ -57,7 +57,8 @@ INSTALLED_APPS = [
     'branches',
     'employees',
     'sales',
-    'mobile'
+    'mobile',
+    'django_cron',
 ]
 
 MIDDLEWARE = [
@@ -198,3 +199,5 @@ CHANNEL_LAYERS = {
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+CRON_CLASSES=['employees.corn.MarkAbsentEmployeesCornJob']
