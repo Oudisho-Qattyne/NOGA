@@ -133,3 +133,10 @@ class AttendanceAPIView(viewsets.ModelViewSet):
 class VecationAPIView(generics.ListCreateAPIView):
     queryset=Vecation.objects.all()
     serializer_class=VecationSerializer
+
+class SalaryAPIView(generics.ListAPIView):
+    queryset=Salary.objects.all()
+    serializer_class=SalarySerializer
+    def get_queryset(self):
+        employee_id=self.kwargs['employee_id']
+        return Salary.objects.filter(employee__id=employee_id)

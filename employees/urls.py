@@ -25,4 +25,7 @@ urlpatterns = [
     path('attendance/check_out',AttendanceAPIView.as_view({'post':'check_out'}),name='check_out'),
 
     path('vecations/',VecationAPIView.as_view()),
+
+    path('salaries/',calculate_employee_salary,name='salary_list'),
+    path('salaries/employee/<int:employee_id>',SalaryAPIView.as_view(),name='salary_by_employee')
 ]

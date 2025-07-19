@@ -200,4 +200,5 @@ CHANNEL_LAYERS = {
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CRON_CLASSES=['employees.corn.MarkAbsentEmployeesCornJob']
+CRON_CLASSES=['employees.corn.MarkAbsentEmployeesCornJob',
+              'employees.corn.GeneratMonthlySalaries']

@@ -1,6 +1,7 @@
 from django.db import models
 from NOGA.utils import *
 from branches.models import Branch
+from datetime import date,timedelta
 # Create your models here.
 
 
@@ -24,7 +25,7 @@ class Employee(models.Model):
     email=models.EmailField(max_length=50 , default="test@gmail.com")
     birth_date=models.DateField()
     gender=models.BooleanField()
-    salary=models.IntegerField()
+    base_salary=models.DecimalField(max_digits=10,decimal_places=2)
     address=models.CharField(max_length=50)
     phone=models.CharField(max_length=100)
     date_of_employment=models.DateField()
@@ -111,4 +112,63 @@ class Vecation(models.Model):
         return (self.end_date-self.start_date).days+1
     
     def __str__(self):
-        return f"{self.employee.full_name}|{self.vecation_type}|{self.start_date}-{self.end_date}"
+        return f"{self.employee.full_name}|{self.vecation_type}|{self.start_date}-{self.end_date}" 
+    
+
+class Salary(models.Model):
+    employee=models.ForeignKey(Employee,on_delete=models.CASCADE,related_name='salary_list')
+    month=models.IntegerField()
+    year=models.IntegerField()
+    base_salary=models.DecimalField(max_digits=10,decimal_places=2)
+    final_salary=models.DecimalField(max_digits=10,decimal_places=2)
+    absent_days=models.IntegerField()
+    unpaid_vecation_days=models.IntegerField()
+    late_count=models.IntegerField()
+    generated_at=models.DateTimeField(auto_now_add=True)
+    class Meta:
+        unique_together=['employee','month','year']
+    
+    def __str__(self):
+        return f"{self.employee.full_name}-{self.month}/{self.year}"
+    
+def calculate_employee_salary(employee,year,month):
+    base_salary=employee.base_salary
+    start_date=date(year,month,1)
+    end_date=(date(year+(month // 12),(month % 12)+1,1)-timedelta(days=1))
+    working_days=WorkDay.objects.filter(is_working_day=True).count()
+    day_salary=base_salary/working_days if working_days else 0
+    absents=Attendance.objects.filter(employee=employee,
+                                            date__range=(start_date,end_date),
+                                            status='absent').count()
+    unpaid_vecations=Vecation.objects.filter(employee=employee,
+                                                vecation_type='unpaid',
+                                                start_date__lte=end_date,
+                                                end_date__gte=start_date)
+    unpaid_days=0
+    for vecation in unpaid_vecations:
+        actual_start=max(vecation.start_date,start_date)
+        actual_end=min(vecation.end_date,end_date)
+        delta_days=(actual_end-actual_start).days+1
+        if delta_days>0:
+            unpaid_days+=delta_days
+    
+    late_count=Attendance.objects.filter(employee=employee,
+                                            date__range=(start_date,end_date),
+                                            status='late').count()
+    late_deduction=(0.25*day_salary)*late_count
+    total_deduction=(absents + unpaid_days)*day_salary + late_deduction
+    final_salary=base_salary-total_deduction
+
+    salary,created=Salary.objects.update_or_create(
+        employee=employee,
+        month=month,
+        year=year,
+        defaults={'base_salary':base_salary,
+                    'final_salary':round(final_salary,2),
+                    'absent_days':absents,
+                    'unpaid_vecation_days':unpaid_days,
+                    'late_count':late_count
+        }
+        
+    )
+    return salary

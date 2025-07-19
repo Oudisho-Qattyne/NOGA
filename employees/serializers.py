@@ -125,3 +125,9 @@ class VecationSerializer(serializers.ModelSerializer):
         model=Vecation
         fields=['employee','vecation_type','duration_type','start_date','end_date','created_at']
         read_only_fields=['created_at']
+
+class SalarySerializer(serializers.ModelSerializer):
+    class Meta:
+        model=Salary
+        fields=['employee','month','year','base_salary','final_salary','absent_days','unpaid_vecation_days','late_count','generated_at']
+        read_only_fields=['salary_list']
