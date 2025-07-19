@@ -7,6 +7,8 @@ class City(models.Model):
     city_name = models.CharField(max_length=100 , unique=True)
     
 class Branch(models.Model):
+    def __str__(self) -> str:
+        return self.city.city_name + str(self.number)
     number = models.IntegerField()
     location = models.CharField(max_length=255)
     area = models.CharField(max_length=255)

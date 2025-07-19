@@ -6,6 +6,7 @@ import uuid
 from products.models import Option_Unit
 from django.utils import timezone
 from sales.models import Discount , Discount_Category , Discount_Product
+from products.models import Variant
 
 class Paginator(PageNumberPagination):
     page_size = 10
@@ -64,7 +65,7 @@ def generate_unique_code():
 
 def find_element_by_id(data_list, id):
     for element in data_list:
-        if element.product.product.id == id:
+        if element.product.id == id:
             return element
     return None  # Return None if element with the ID is not found
 
@@ -86,6 +87,30 @@ def generate_sku(product_name ,options):
     sku = "-".join(option_unit_list)
     return sku
 
+def check_options(variant_options , dp_options):
+    v_options = []
+    p_options = []
+    for option in variant_options:
+        temp = option.attribute.attribute + option.option
+        if option.attribute.has_unit:
+            temp += Option_Unit.objects.get(option=option).unit.unit
+        v_options.append(temp)
+    for option in dp_options:
+        temp = option.attribute.attribute + option.option
+        if option.attribute.has_unit:
+            temp += Option_Unit.objects.get(option=option).unit.unit
+        p_options.append(temp)
+    v_options = set(v_options)
+    p_options = set(p_options)
+    print(v_options)
+    print(p_options)
+    return p_options.issubset(v_options)
+
+
+
+def is_valid_offer(offer):
+    today = timezone.now().date()
+    return offer.start_date <= today <= offer.end_date
 
 def calculate_discount(self , variant):
         from sales.serializers import DiscountSimpleSerializer
@@ -98,24 +123,7 @@ def calculate_discount(self , variant):
         def is_valid_discount(discount):
             return discount.start_date <= today <= discount.end_date
         
-        def check_options(variant_options , dp_options):
-            v_options = []
-            p_options = []
-            for option in variant_options:
-                temp = option.attribute.attribute + option.option
-                if option.attribute.has_unit:
-                    temp += Option_Unit.objects.get(option=option).unit.unit
-                v_options.append(temp)
-            for option in dp_options:
-                temp = option.attribute.attribute + option.option
-                if option.attribute.has_unit:
-                    temp += Option_Unit.objects.get(option=option).unit.unit
-                p_options.append(temp)
-            v_options = set(v_options)
-            p_options = set(p_options)
-            print(v_options)
-            print(p_options)
-            return p_options.issubset(v_options)
+        
         
         def calculate_totla_price(discount , price):
             amount = discount.amount
@@ -139,7 +147,6 @@ def calculate_discount(self , variant):
                 dp_options = set(option for option in dp.options.all())
                 variant_options = set(option for option in options)
                 if check_options(variant_options,dp_options):
-                    print(check_options(variant_options,dp_options))
                     if is_valid_discount(dp.discount):
                         discount_data = DiscountSimpleSerializer(dp.discount)
                         return {
@@ -317,6 +324,245 @@ def calculate_discount(self , variant):
             discount_data = DiscountSimpleSerializer(discounts_for_all_products.first())
             return {
                     "discount" : discount_data.data,
+                    "total" : calculate_totla_price(discounts_for_all_products.first() , variant.selling_price)
+                    }
+
+        return {
+                "discount" : None,
+                "total" : variant.selling_price
+                }  # No applicable discount found
+
+
+def calculate_discount_instance(self , variant):
+        from sales.serializers import DiscountSimpleSerializer
+        variant = Variant.objects.get(id=variant)
+        product = variant.product
+        options = variant.options.all()  # Assuming variant.options is a queryset or list
+
+        today = timezone.now().date()
+
+        def is_valid_discount(discount):
+            return discount.start_date <= today <= discount.end_date
+        
+        def check_options(variant_options , dp_options):
+            v_options = []
+            p_options = []
+            for option in variant_options:
+                temp = option.attribute.attribute + option.option
+                if option.attribute.has_unit:
+                    temp += Option_Unit.objects.get(option=option).unit.unit
+                v_options.append(temp)
+            for option in dp_options:
+                temp = option.attribute.attribute + option.option
+                if option.attribute.has_unit:
+                    temp += Option_Unit.objects.get(option=option).unit.unit
+                p_options.append(temp)
+            v_options = set(v_options)
+            p_options = set(p_options)
+            print(v_options)
+            print(p_options)
+            return p_options.issubset(v_options)
+        
+        def calculate_totla_price(discount , price):
+            amount = discount.amount
+            type = discount.discount_type
+            if type == "fixed":
+                return price - amount
+            elif type == "percentage":
+                return price - (price * amount / 100)
+            
+        discounts = Discount_Product.objects.filter(
+            product=product,
+            discount__for_every_product_exept=False,
+            discount__start_date__lte=today,
+            discount__end_date__gte=today
+        ).distinct()
+
+      
+        for dp in discounts:
+            # If has_options is True, check if all variant options are covered
+            if dp.has_options:
+                dp_options = set(option for option in dp.options.all())
+                variant_options = set(option for option in options)
+                if check_options(variant_options,dp_options):
+                    print(check_options(variant_options,dp_options))
+                    if is_valid_discount(dp.discount):
+                        # discount_data = DiscountSimpleSerializer(dp.discount)
+                        return {
+                            "discount" : dp.discount,
+                            "total" : calculate_totla_price(dp.discount , variant.selling_price)
+                            }
+            else:
+                # Discount applies to product regardless of options
+                if is_valid_discount(dp.discount):
+                    # discount_data = DiscountSimpleSerializer(dp.discount)
+                    return {
+                            "discount" :dp.discount,
+                            "total" : calculate_totla_price(dp.discount , variant.selling_price)
+                            }
+
+        # 2. Check discount for product only (without options)
+        discounts_product_only = Discount.objects.filter(
+            has_products=True,
+            # has_categories=False,
+            for_every_product_exept=False,
+            discount_product__product=product,
+            start_date__lte=today,
+            end_date__gte=today
+        ).distinct()
+        if discounts_product_only.exists():
+            # discount_data = DiscountSimpleSerializer(discounts_product_only.first())
+            return {
+                    "discount" : discounts_product_only.first(),
+                    "total" : calculate_totla_price(discounts_product_only.first() , variant.selling_price)
+                    }
+
+        # 3. Check discount for category and option
+        category = product.category 
+        discount_categories = Discount_Category.objects.filter(
+            category=category,
+            discount__for_every_product_exept=False,
+            discount__start_date__lte=today,
+            discount__end_date__gte=today
+        ).distinct()
+
+        for dc in discount_categories:
+            if dc.has_options:
+                dc_options = set(dc.options.all())
+                variant_options = set(options)
+                if check_options(variant_options,dc_options):
+                    if is_valid_discount(dc.discount):
+                        # discount_data = DiscountSimpleSerializer(dc.discount)
+                        return {
+                            "discount" : dp.discount,
+                            "total" : calculate_totla_price(dc.discount , variant.selling_price)
+                            }
+            else:
+                if is_valid_discount(dc.discount):
+                    # discount_data = DiscountSimpleSerializer(dc.discount)
+                    return {
+                            "discount" : dp.discount,
+                            "total" : calculate_totla_price(dc.discount , variant.selling_price)
+                            }
+
+        # 4. Check discount for category only
+        discounts_category_only = Discount.objects.filter(
+            # has_products=False,
+            has_categories=True,
+            for_every_product_exept=False,
+            discount_category__category=category,
+            start_date__lte=today,
+            end_date__gte=today
+        ).distinct()
+        if discounts_category_only.exists():
+            # discount_data = DiscountSimpleSerializer(discounts_category_only.first())
+            return {
+                    "discount" : discounts_category_only.first(),
+                    "total" : calculate_totla_price(discounts_category_only.first() , variant.selling_price)
+                    }
+        # ****************************************************************************************************************************************
+
+        discounts = Discount_Product.objects.filter(
+            product=product,
+            discount__for_every_product_exept=True,
+            discount__start_date__lte=today,
+            discount__end_date__gte=today
+        ).distinct()
+
+      
+        for dp in discounts:
+            # If has_options is True, check if all variant options are covered
+            if dp.has_options:
+                dp_options = set(option for option in dp.options.all())
+                variant_options = set(option for option in options)
+                if not check_options(variant_options,dp_options):
+                    print(check_options(variant_options,dp_options))
+                    if is_valid_discount(dp.discount):
+                        # discount_data = DiscountSimpleSerializer(dp.discount)
+                        return {
+                            "discount" : dp.discount,
+                            "total" : calculate_totla_price(dp.discount , variant.selling_price)
+                            }
+            # else:
+            #     # Discount applies to product regardless of options
+            #     if is_valid_discount(dp.discount):
+            #         # discount_data = DiscountSimpleSerializer(dp.discount)
+            #         return {
+            #                 "discount" : None,
+            #                 "total" : variant.selling_price
+            #                 }
+
+        # 2. Check discount for product only (without options)
+        discounts_product_only = Discount.objects.filter(
+            has_products=True,
+            # has_categories=False,
+            for_every_product_exept=True,
+            start_date__lte=today,
+            end_date__gte=today
+        ).exclude(
+            discount_product__product=product
+        ).distinct()
+        if discounts_product_only.exists():
+            # discount_data = DiscountSimpleSerializer(discounts_product_only.first())
+            return {
+                    "discount" : discounts_product_only.first(),
+                    "total" : calculate_totla_price(discounts_product_only.first() , variant.selling_price)
+                    }
+
+        # 3. Check discount for category and option
+        category = product.category 
+        discount_categories = Discount_Category.objects.filter(
+            category=category,
+            discount__for_every_product_exept=True,
+            discount__start_date__lte=today,
+            discount__end_date__gte=today
+        ).distinct()
+
+        for dc in discount_categories:
+            if dc.has_options:
+                dc_options = set(dc.options.all())
+                variant_options = set(options)
+                if not check_options(variant_options,dc_options):
+                    if is_valid_discount(dc.discount):
+                        # discount_data = DiscountSimpleSerializer(dc.discount)
+                        return {
+                            "discount" : dc.discoun,
+                            "total" : calculate_totla_price(dc.discount , variant.selling_price)
+                            }
+
+        # 4. Check discount for category only
+        discounts_category_only = Discount.objects.filter(
+            # has_products=False,
+            has_categories=True,
+            for_every_product_exept=True,
+            start_date__lte=today,
+            end_date__gte=today
+        ).exclude(
+            discount_category__category=category,
+        ).distinct()
+        if discounts_category_only.exists():
+            # discount_data = DiscountSimpleSerializer(discounts_category_only.first())
+            return {
+                    "discount" : discounts_category_only.first(),
+                    "total" : calculate_totla_price(discounts_category_only.first() , variant.selling_price)
+                    }
+
+
+# ****************************************************************************************************************************************
+
+        discounts_for_all_products = Discount.objects.filter(
+            # has_products=True,
+            # has_categories=False,
+            for_every_product=True,
+            for_every_product_exept=False,
+            discount_product__product=product,
+            start_date__lte=today,
+            end_date__gte=today
+        ).distinct()
+        if discounts_for_all_products.exists():
+            # discount_data = DiscountSimpleSerializer(discounts_for_all_products.first())
+            return {
+                    "discount" : discounts_for_all_products.first(),
                     "total" : calculate_totla_price(discounts_for_all_products.first() , variant.selling_price)
                     }
 

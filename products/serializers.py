@@ -416,10 +416,10 @@ class ReceivedProductSerializer(serializers.ModelSerializer):
         validated_data = super().validate(attrs)
         transportation = validated_data['transportation']
         transported_products = transportation.transported_products
-        ids = list(x.product.product.id for x in transported_products)
+        ids = list(x.product.id for x in transported_products)
         variant = validated_data['product']
         quantity = validated_data['quantity']
-
+        print(ids , variant.id)
         if variant.id not in ids:
             raise serializers.ValidationError({variant.product.product_name : "This product is not transported"})
         transported_product = find_element_by_id(transported_products , variant.id)

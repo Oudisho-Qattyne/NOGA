@@ -2,7 +2,8 @@ from rest_framework import serializers
 from .models import *
 from products.serializers import OptionSerializer , ProductSerializer
 from products.models import Variant , Product
-
+from NOGA.utils import calculate_discount_instance , check_options , is_valid_offer
+from branches.models import Branch_Products
 class DiscountProductOptionSerializer(serializers.ModelSerializer):
     option = OptionSerializer(many=True)
     class Meta:
@@ -243,4 +244,342 @@ class DiscountSerializer(serializers.ModelSerializer):
     # def update(self, instance, validated_data):
     #     instance = super().update(instance, validated_data)
 
-    #     return 
+    #     return
+
+
+class OfferProductOptionSerializer(serializers.ModelSerializer):
+    option = OptionSerializer(many=True)
+    class Meta:
+        model = Offer_Product_Option
+        fields = ["id" , "Offer_product" , "option"]
+    
+
+class OfferProductSerializer(serializers.ModelSerializer):
+    options = serializers.PrimaryKeyRelatedField(queryset=Option.objects.all(),many=True , write_only=True, required=False)
+    # options = OptionSerializer(many=True)
+    class Meta:
+        model = Offer_Product
+        fields = ["id" , "offer" , "product" , "has_options" , "options" , "quantity"]
+        extra_kwargs={
+            "offer":{
+                "required":False,
+                "write_only":True
+            }
+        }
+    def validate(self, attrs):
+        errors = []
+
+        validated_data = super().validate(attrs)
+        has_options = validated_data.get("has_options" , None)
+        product = validated_data.get("product" , None)
+        offer_product_options = validated_data.get('options' , [])
+
+        if has_options:
+            if len(offer_product_options) == 0:
+                errors.append({'options' : 'This field is required'})
+            else:
+                variants = Variant.objects.filter(product=product.id)
+                for option in offer_product_options:
+                    product_has_option = False
+                    for variant in variants:
+                        product_options = variant.options.values_list("id" , flat=True)
+                        if option.id  in product_options:
+                            product_has_option = True
+                            break
+                    if not product_has_option:
+                        errors.append({option.id : "This product don`t have this option"})
+
+        if len(errors) !=0:
+            raise serializers.ValidationError( {"options" : errors})
+        
+        return validated_data
+    
+    
+    def create(self, validated_data):
+        options = validated_data.pop('options' , [])
+        has_options = validated_data.get('has_options' , False)
+        offer_product_instance = Offer_Product.objects.create(**validated_data)
+        # offer_product_instance = super().create(validated_data)
+        if has_options:
+            for option in options:
+                offer_product_instance.options.add(option)
+        return offer_product_instance
+    
+
+    def to_representation(self, instance):
+        self.fields['options'] = OptionSerializer(many=True, read_only=True)  
+        # self.fields['product'] = ProductSerializer(many=True, read_only=True)  
+        data = super(OfferProductSerializer, self).to_representation(instance)
+        data['product'] = instance.product.product_name
+        return data
+
+
+class OfferSerializer(serializers.ModelSerializer):
+    offer_products = OfferProductSerializer(many=True , required=False)
+    # discount_categories = DiscountCategorySerializer(many=True , required=False)
+    class Meta:
+        model = Offer
+        fields = ["id" , "start_date" , "end_date" , "created_at", "price" , "offer_products" ]
+    
+    def validate(self, attrs):
+        errors = []
+        validated_data = super().validate(attrs)
+        offer_products = validated_data.get("offer_products" , [])
+
+        if  len(offer_products) == 0:
+            errors.append({"offer_products":"This field is required"})
+        
+
+        if len(errors) != 0:
+            raise serializers.ValidationError({"offer":errors})
+
+        return validated_data
+    
+
+    def create(self, validated_data):
+
+        offer_products = validated_data.pop("offer_products" , [])
+        offer = super().create(validated_data)
+        for offer_product in offer_products:
+            offer_product['offer'] = offer.id
+            offer_product['product'] = offer_product['product'].id
+            if offer_product['has_options']:
+                offer_product['options'] = list(option.id for option in  offer_product['options'])
+            offer_product_serialized = OfferProductSerializer(data=offer_product)
+            offer_product_serialized.is_valid(raise_exception=True)
+            offer_product_serialized.save()
+            
+        return offer
+
+
+class CouponSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Coupon
+        fields = ['id' , "code" , "start_date" , "end_date" , "created_at" , "amount" , "discount_type" , "min_price" , "max_price" , "quantity"]
+
+class PurchasedProductsSerializer(serializers.ModelSerializer):
+    discount = serializers.PrimaryKeyRelatedField(queryset=Discount.objects.all() , write_only=True, required=False)
+    offer = serializers.PrimaryKeyRelatedField(queryset=Offer.objects.all() , write_only=True, required=False)
+    class Meta:
+        model = Purchased_Products
+        fields = ["id" , "purchase" , "product" , "wholesale_price" , "selling_price" , "total_price" , "has_discount"  , "discount" , "in_pack" , "offer"  , "quantity"]
+        extra_kwargs={
+            "wholesale_price":{
+                "required":False,
+                # "write_only":True
+            },
+            "selling_price":{
+                "required":False,
+                # "write_only":True
+            },
+            "offer":{
+                "required":False,
+            },
+            "has_discount":{
+                "required":False
+            },
+            "in_pack":{
+                "required":False
+            },
+            "total_price":{
+                "required":False
+            },
+            "offer":{
+                "required":False,
+            },
+            "discont":{
+                "required":False,
+                "read_only":True
+            },
+             "purchase":{
+                "required":False,
+            },
+        }
+    def validate(self, attrs):
+        validated_data = super().validate(attrs)
+        in_pack = validated_data.get("in_pack" , False)
+        offer = validated_data.get("offer" , None)
+        product = validated_data.get("product" , None)
+        quantity = validated_data.get("quantity" , None)
+        if in_pack == True and offer is None:
+            raise serializers.ValidationError({product.product.product_name : "Offer is required"})
+        
+        if in_pack == True and offer is not None:
+            if is_valid_offer(offer):
+                op = [offer_product for offer_product in offer.offer_products if offer_product.product.id == product.product.id]
+                if len(op) > 0:
+                    op = op[0]
+                    print(op.quantity)
+                    if op.has_options:
+                        op_options = set(option for option in op.options.all() )
+                        variant_options = set(option for option in product.options.all())
+                        if not check_options(variant_options , op_options):
+                            raise serializers.ValidationError({"offer" : "This offer does not include this product."})
+                        else:
+                            if quantity != op.quantity:
+                                raise serializers.ValidationError({"offer" : "This offer does not include this amount of product."})
+                    if quantity != op.quantity:
+                                raise serializers.ValidationError({"offer" : "This offer does not include this amount of product."})
+
+                else:
+                    raise serializers.ValidationError({"offer" : "This offer does not include this product."})
+            else:
+                    raise serializers.ValidationError({"offer" : "This offer is not valid."})
+        return validated_data  
+    
+    def create(self, validated_data):
+        # offer = validated_data.get("offer" , None)
+        # if offer is not None:
+            # validated_data["offer"] = offer.id
+        purchased_product =  super().create(validated_data)
+        
+        return purchased_product
+    
+    def to_representation(self, instance):
+        self.fields['discount'] = DiscountSimpleSerializer( read_only=True)  
+        self.fields['offer'] = OfferSerializer( read_only=True)  
+        # self.fields['product'] = ProductSerializer(many=True, read_only=True)  
+        data = super(PurchasedProductsSerializer, self).to_representation(instance)
+        # data['product'] = instance.product.product_name
+        return data
+    
+class PurchaseSerializer(serializers.ModelSerializer):
+    purchased_products = PurchasedProductsSerializer(many=True)
+    purchased_offers = serializers.PrimaryKeyRelatedField(queryset=Offer.objects.all() , write_only=True, required=False , many = True)
+    class Meta:
+        model = Purchase
+        fields = ["id" , "branch" , "customer" , "status" , "date_of_purchase" , "created_at" , "subtotal_price" ,"total_price" , "has_coupons" , "coupon" , "purchased_products" ,"purchased_offers"]
+        extra_kwargs={
+            "coupon":{
+                "required":False,
+            },
+            "has_coupon":{
+                "required":False,
+            },
+            "total_price":{
+                "required":False,
+            },
+            "subtotal_price":{
+                "required":False,
+            },
+        }
+    def validate(self, attrs):
+        errors = {}
+
+        validated_data = super().validate(attrs)
+        purchased_products = validated_data.get("purchased_products" , None)
+        purchased_offers = validated_data.get("purchased_offers" , [])
+
+        if len(purchased_offers) > 0 :
+            validated_data['has_offers'] = True
+        if purchased_products is None:
+            errors["purchased_products"] = "This field is required"
+        if len(purchased_products) <= 0 :
+            errors["purchased_products"] = "This field is required"
+        products_in_pack = {}
+        products = {}
+        if len(purchased_offers) > 0:
+            # products_in_pack = {product for product in purchased_product.items() if product["in_pack"] == True}
+            for purchased_product in purchased_products:
+                in_pack = purchased_product.get("in_pack" , False)
+                if in_pack == True:
+                    if purchased_product["product"].id in products_in_pack:
+                        products_in_pack[purchased_product["product"].id]["quantity"] += purchased_product["quantity"]
+                    else :
+                        products_in_pack[purchased_product["product"].id] = purchased_product
+                else:
+                    if purchased_product["product"].id in products:
+                        products[purchased_product["product"].id]["quantity"] += purchased_product["quantity"]
+                    else :
+                        products[purchased_product["product"].id] = purchased_product
+        print("products_in_pack : " , products_in_pack)
+        print("products : " , products)
+    
+        for purchased_product in purchased_products:
+            # purchased_product["purchase"] = purchase
+            product = purchased_product["product"]
+            quantity = purchased_product["quantity"]
+            branch = validated_data['branch']       
+            in_pack  = purchased_product.get("in_pack" , False)
+            offer  = purchased_product.get("offer" , None)
+            branch_product = Branch_Products.objects.filter(product=product , branch=branch)
+            if len(branch_product) > 0:
+               
+                if branch_product[0].quantity < quantity: 
+                    errors[product.product.product_name] = "This branch don't have the needed quantity"
+            else:
+                errors[product.product.product_name] = "This branch don't have this product"
+            purchased_product["wholesale_price"] = purchased_product["product"].wholesale_price
+            purchased_product["selling_price"] = purchased_product["product"].selling_price
+            purchased_product["product"] = purchased_product["product"].id
+            if in_pack == True:
+                purchased_product["offer"] = purchased_product["offer"].id
+            purchased_product_serialized_data = PurchasedProductsSerializer(data = purchased_product)
+            purchased_product_serialized_data.is_valid(raise_exception=True)
+            if len(errors) > 0:
+                raise serializers.ValidationError(errors)
+        return validated_data
+    
+    def create(self, validated_data):
+        purchased_products = validated_data.pop("purchased_products" , None)
+        purchased_offers = validated_data.pop("purchased_offers" , None)
+        if purchased_offers is not None:
+            if len(purchased_offers) > 0 :
+                validated_data['has_offers'] = True
+        validated_data['subtotal_price'] = 0
+        validated_data['total_price'] = 0
+        # subtotal_price = 0
+        # total_price = 0
+        purchase = super().create(validated_data)
+        for purchased_product in purchased_products:
+            purchased_product["purchase"] = purchase.id
+            # purchased_product["wholesale_price"] = purchased_product["product"].wholesale_price
+            # purchased_product["selling_price"] = purchased_product["product"].selling_price
+            # purchased_product["product"] = purchased_product["product"].id
+            product = purchased_product.get("product" , None)
+            quantity = purchased_product.get("quantity" , None)
+            product = purchased_product.get("product" , None)
+            quantity = purchased_product.get("quantity" , None)
+            branch = purchase.branch          
+            branch_product = Branch_Products.objects.filter(product=product , branch=branch).first()
+            discount = calculate_discount_instance(self , product)
+            if discount["discount"] is not None:
+                purchased_product['discount'] = discount["discount"].id
+                purchased_product['total_price'] = discount["total"] * quantity
+                purchased_product['has_discount'] = True
+            else:
+                purchased_product['total_price'] =  discount["total"] * quantity
+                purchased_product['has_discount'] = False
+            branch_product.quantity -= quantity
+            branch_product.save()
+            purchased_product_serialized_data = PurchasedProductsSerializer(data = purchased_product)
+            purchased_product_serialized_data.is_valid(raise_exception=True)
+            insatnce = purchased_product_serialized_data.save()
+            purchase.subtotal_price += insatnce.selling_price * insatnce.quantity
+            purchase.total_price += insatnce.total_price
+        for purchased_offer in purchased_offers:
+            purchase.purchased_offers.add(purchased_offer)
+        return purchase
+    def to_representation(self, instance):
+        self.fields['purchased_offers'] = OfferSerializer(many=True, read_only=True)   
+        data = super(PurchaseSerializer, self).to_representation(instance)
+        return data
+    
+class CustomerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Customer
+        fields = ["id" , "national_number" , "first_name" , "last_name" , "phone_number" , "gender" ]
+
+    def validate(self, attrs):
+        errors = {}
+        validated_data = super().validate(attrs)
+        national_number = validated_data.get('national_number' ,None)
+        phone_number = validated_data.get('phone_number' ,None)
+        if not national_number.isdigit():
+            errors["national_number"] = "National number should be a number"
+        if not phone_number.isdigit():
+            errors["phone_number"] = "Phone number should be a number"
+        
+        if errors:
+            raise serializers.ValidationError(errors)
+        return validated_data

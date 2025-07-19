@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import *
 from employees.models import Employee
-
+from products.serializers import VariantSerializers
 
 class BranchSerializer(serializers.ModelSerializer):
     city_name = serializers.StringRelatedField(source='city')
@@ -51,12 +51,20 @@ class BranchSerializer(serializers.ModelSerializer):
         else:
             raise serializers.ValidationError({"manager" : "employee in not manager"})
         
-        
+          
         
 class CitySerializer(serializers.ModelSerializer):
     class Meta:
         model = City
         fields = ["id" , "city_name"]
+        
+class BranchProductsSerializer(serializers.ModelSerializer):
+    product = VariantSerializers(read_only=True)
+    branch_name = serializers.StringRelatedField(source='branch')
+
+    class Meta:
+        model = Branch_Products
+        fields = ["id" , "branch" , "product" , "quantity" , "branch_name"]
         
         
      

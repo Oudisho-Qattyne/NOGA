@@ -6,14 +6,17 @@ class VariantFilter(django_filters.FilterSet):
     attribute = django_filters.CharFilter(field_name='options__attribute__attribute', lookup_expr='icontains')
     category = django_filters.CharFilter(field_name='product__category__category', lookup_expr='icontains')
     product = django_filters.CharFilter(field_name='product__product_name', lookup_expr='icontains')
+    selling_price = django_filters.RangeFilter(field_name='selling_price')
+    wholesale_price =django_filters.RangeFilter(field_name='wholesale_price')
+    quantity =django_filters.RangeFilter(field_name='quantity')
     class Meta:
         model = Variant
         fields = {
             'id': ['icontains'],
             'product__product_name': ['icontains'],
             'quantity': ['icontains'],
-            'selling_price': ['icontains'],
-            'wholesale_price': ['icontains'],
+            # 'selling_price': ['icontains'],
+            # 'wholesale_price': ['icontains'],
             'sku':['icontains']
             # 'option': ['icontains'],          # اسم الحقل المستخدم في URL ل options__option
             # 'attribute': ['icontains'],       # اسم الحقل المستخدم في URL ل options__attribute__attribute
