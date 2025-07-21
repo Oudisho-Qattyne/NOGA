@@ -2,6 +2,9 @@ from django.db import models
 from NOGA.utils import *
 from branches.models import Branch
 from datetime import date,timedelta
+from decimal import Decimal
+from django.db.models import Q
+
 # Create your models here.
 
 
@@ -25,7 +28,7 @@ class Employee(models.Model):
     email=models.EmailField(max_length=50 , default="test@gmail.com")
     birth_date=models.DateField()
     gender=models.BooleanField()
-    base_salary=models.DecimalField(max_digits=10,decimal_places=2)
+    salary=models.DecimalField(max_digits=10,decimal_places=2)
     address=models.CharField(max_length=50)
     phone=models.CharField(max_length=100)
     date_of_employment=models.DateField()
@@ -68,13 +71,21 @@ class Attendance(models.Model):
     STATUS_CHOICES = [
         ('present', 'Present'),
         ('absent', 'Absent'),
-        ('late', 'Late'),
-        ('half_day', 'Half Day'),
+        ('on_vecation', 'On Vecation'),
     ]
-    
+    CHECK_IN_STATUS = [
+        ('on_time', 'On Time'),
+        ('late', 'Late'),
+    ]
+    CHECK_OUT_STATUS = [
+        ('on_time', 'On Time'),
+        ('left_early', 'Left Early'),
+    ]
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE)
     date = models.DateField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES)
+    check_in_status = models.CharField(max_length=20, choices=CHECK_IN_STATUS)
+    check_out_status = models.CharField(max_length=20, choices=CHECK_OUT_STATUS)
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -123,7 +134,7 @@ class Salary(models.Model):
     final_salary=models.DecimalField(max_digits=10,decimal_places=2)
     absent_days=models.IntegerField()
     unpaid_vecation_days=models.IntegerField()
-    late_count=models.IntegerField()
+    late_or_left_early_count=models.IntegerField()
     generated_at=models.DateTimeField(auto_now_add=True)
     class Meta:
         unique_together=['employee','month','year']
@@ -131,12 +142,57 @@ class Salary(models.Model):
     def __str__(self):
         return f"{self.employee.full_name}-{self.month}/{self.year}"
     
+def count_specific_weekday(year, month, weekdays_to_count):
+    current_day = date(year, month, 1)
+    if month == 12:
+        next_month = date(year + 1, 1, 1)
+    else:
+        next_month = date(year, month + 1, 1)
+    
+    count = 0
+    while current_day < next_month:
+        if current_day.weekday() in weekdays_to_count:
+            count += 1
+        current_day += timedelta(days=1)
+    return count
+
+def calculate_work_percentage(work_schedule , attendance):
+    try:
+        attendance_logs = attendance.logs.all()  # جميع سجلات الدخول والخروج لذلك اليوم
+        date = attendance.date
+        total_work_seconds = 0
+        
+        for log in attendance_logs:
+            if log.check_in and log.check_out:
+                duration = (log.check_out - log.check_in).total_seconds()
+                if duration > 0:
+                    total_work_seconds += duration
+        
+        # الحصول على يوم العمل في جدول العمل لهذا اليوم (0=Monday ... 6=Sunday)
+        weekday = date.weekday()
+        work_day = WorkDay.objects.get(schedule=work_schedule, day=weekday)
+        
+        official_start = timedelta(hours=work_day.start_time.hour, minutes=work_day.start_time.minute)
+        official_end = timedelta(hours=work_day.end_time.hour, minutes=work_day.end_time.minute)
+        official_hours = (official_end - official_start).total_seconds() / 3600  # بالساعات
+        actual_hours = total_work_seconds / 3600
+        
+        work_percentage = (actual_hours / official_hours) * 100 if official_hours > 0 else 0
+        return round(work_percentage, 2)
+    
+    except Attendance.DoesNotExist:
+        return 0
+    except WorkDay.DoesNotExist:
+        return 0
+    
 def calculate_employee_salary(employee,year,month):
-    base_salary=employee.base_salary
+    work_schedule=WorkSchedule.objects.filter(is_active=True).first()
+    base_salary=employee.salary
     start_date=date(year,month,1)
     end_date=(date(year+(month // 12),(month % 12)+1,1)-timedelta(days=1))
-    working_days=WorkDay.objects.filter(is_working_day=True).count()
-    day_salary=base_salary/working_days if working_days else 0
+    working_days=list(WorkDay.objects.filter(is_working_day=True , schedule=work_schedule).values_list("day" , flat=True))
+    working_days_in_this_month_count = count_specific_weekday(year , month , working_days) 
+    day_salary=base_salary/working_days_in_this_month_count if working_days_in_this_month_count else 0
     absents=Attendance.objects.filter(employee=employee,
                                             date__range=(start_date,end_date),
                                             status='absent').count()
@@ -151,13 +207,21 @@ def calculate_employee_salary(employee,year,month):
         delta_days=(actual_end-actual_start).days+1
         if delta_days>0:
             unpaid_days+=delta_days
-    
-    late_count=Attendance.objects.filter(employee=employee,
-                                            date__range=(start_date,end_date),
-                                            status='late').count()
-    late_deduction=(0.25*day_salary)*late_count
-    total_deduction=(absents + unpaid_days)*day_salary + late_deduction
-    final_salary=base_salary-total_deduction
+
+    late_or_left_early = Attendance.objects.filter(
+        employee=employee,
+        date__range=(start_date, end_date),
+    ).filter(
+        Q(check_in_status='late') | Q(check_out_status='left_early')
+    )
+    # حساب الراتب في الأيام الي تم فيها تقطيع الدوام
+    late_or_left_early_days_salary = 0
+    for atte in late_or_left_early:
+        percentage_of_this_day = calculate_work_percentage(work_schedule , atte ) 
+        salary_of_this_day =Decimal( day_salary * Decimal(percentage_of_this_day)).quantize(Decimal('0.01'))
+        late_or_left_early_days_salary += salary_of_this_day
+    total_deduction=(absents + unpaid_days + late_or_left_early.count() )*day_salary 
+    final_salary=base_salary-total_deduction+late_or_left_early_days_salary
 
     salary,created=Salary.objects.update_or_create(
         employee=employee,
@@ -167,8 +231,8 @@ def calculate_employee_salary(employee,year,month):
                     'final_salary':round(final_salary,2),
                     'absent_days':absents,
                     'unpaid_vecation_days':unpaid_days,
-                    'late_count':late_count
+                    'late_or_left_early_count':late_or_left_early.count()
         }
         
     )
-    return salary
+    return salary.final_salary , created

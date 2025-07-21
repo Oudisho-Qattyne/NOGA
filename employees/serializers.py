@@ -3,6 +3,7 @@ from .models import *
 from branches.models import *
 from branches.serializers import *
 from datetime import date
+from django.utils import timezone
 
 class Job_TypeSerializer(serializers.ModelSerializer):
     class Meta:
@@ -69,13 +70,14 @@ class WorkDaySerializer(serializers.ModelSerializer):
     day_name=serializers.CharField(source='get_day_display',read_only=True)
     class Meta:
         model=WorkDay
-        fields=['day_name','start_time','end_time','is_working_day']
+        fields=['day_name','start_time','end_time','is_working_day' , 'day']
         extra_kwargs={
-            'schedule':{'write_only':True}
+            'schedule':{'write_only':True},
+            'day':{'write_only':True}
         }
     def validate(self,data):
         if data['start_time']>=data['end_time']:
-            raise serializers.ValidationError("end time must be after start time")
+            raise serializers.ValidationError({"end_time" :"end time must be after start time"})
         return data
     
 class WorkScheduleSerializer(serializers.ModelSerializer):
@@ -85,10 +87,7 @@ class WorkScheduleSerializer(serializers.ModelSerializer):
         fields =['id','name','is_active','created_at','updated_at','work_days']
         read_only_fields=['created_at','updated_at']
 
-    def vlidate(self,data):
-        if not data.get('work_days'):
-            raise serializers.ValidationError('have to add work days')
-        days=[day['day'] for day in data['work_days']]
+   
     
     def create(self, validated_data):
         work_days_data=validated_data.pop('work_days')
@@ -99,7 +98,8 @@ class WorkScheduleSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         instance.name=validated_data.get('name',instance.name)
         instance.is_active=validated_data.get('is_active',instance.is_active)
-
+        instance.updated_at = timezone.now()  # تعيين تاريخ ووقت التحديث الحالي
+        instance.save() 
         instance.work_days.all().delete()
         work_days_data=validated_data.get('work_days',[])
         for day_data in work_days_data:
@@ -117,7 +117,7 @@ class AttendanceSerializer(serializers.ModelSerializer):
     class Meta:
         model=Attendance
         fields='__all__'
-        read_only_fields=['status','created_at','date','logs']
+        read_only_fields=['status','created_at','date','logs' ,'check_in_status', 'check_out_status']
 
 
 class VecationSerializer(serializers.ModelSerializer):
@@ -125,9 +125,26 @@ class VecationSerializer(serializers.ModelSerializer):
         model=Vecation
         fields=['employee','vecation_type','duration_type','start_date','end_date','created_at']
         read_only_fields=['created_at']
-
+    def validate(self, attrs):
+        validated_data = super().validate(attrs)
+        now = timezone.now().date()  # الحصول على التاريخ الحالي فقط (بدون الوقت)
+    
+        start_date = validated_data.get('start_date')
+        end_date = validated_data.get('end_date')
+        if start_date >= end_date:
+            raise serializers.ValidationError({"end_date" :"end time must be after start time"})
+        
+        if start_date < now:
+            raise serializers.ValidationError({"start_date": "Start date cannot be in the past."})
+        if end_date < now:
+            raise serializers.ValidationError({"end_date": "End date cannot be in the past."})
+        if start_date >= end_date:
+            raise serializers.ValidationError({"end_date": "End date must be after start date."})
+        
+        return validated_data
+   
 class SalarySerializer(serializers.ModelSerializer):
     class Meta:
         model=Salary
-        fields=['employee','month','year','base_salary','final_salary','absent_days','unpaid_vecation_days','late_count','generated_at']
+        fields=['employee','month','year','base_salary','final_salary','absent_days','unpaid_vecation_days','late_or_left_early_count','generated_at']
         read_only_fields=['salary_list']

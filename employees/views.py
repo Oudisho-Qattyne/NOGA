@@ -62,7 +62,7 @@ class AttendanceAPIView(viewsets.ModelViewSet):
     def check_in(self, request):
         employee_id = request.data.get('employee')
         if not employee_id:
-            return Response({'error':'Employee ID is required'},status=status.HTTP_404_NOT_FOUND)
+            return Response({'employee':'Employee ID is required'},status=status.HTTP_404_NOT_FOUND)
         
         employee = Employee.objects.get(id=employee_id)
         now=timezone.now()
@@ -77,11 +77,16 @@ class AttendanceAPIView(viewsets.ModelViewSet):
             return Response({'error':'No work schedule for today'},status=status.HTTP_404_NOT_FOUND)
         scheduled_start=datetime.combine(now,work_day.start_time).replace(tzinfo=timezone.get_current_timezone())
         delay_minutes=(now-scheduled_start).total_seconds()/60
-        status_text='present' if delay_minutes<=30 else 'late'
+        print("delay_minutes" , delay_minutes , now)
+        status_text='on_time' if delay_minutes<=30 else 'late'
+        print(delay_minutes<=30 , status_text)
         attendance, created = Attendance.objects.get_or_create(
             employee=employee,
             date=today_date,
-            defaults={ 'status':status_text}
+            defaults={
+                'status': 'present', 
+                'check_in_status':status_text
+                }
         )
         active_logs=attendance.logs.filter(check_out__isnull=True)
         if active_logs.exists():
@@ -121,16 +126,37 @@ class AttendanceAPIView(viewsets.ModelViewSet):
         active_log=attendance.logs.filter(check_out__isnull=True).first()
         if not active_log:
             return Response({'error': 'No active check in log found. Maybe already checked out?'},status=status.HTTP_400_BAD_REQUEST) 
-      
-        active_log.check_out=timezone.now()
+        now=timezone.now()
+        today_date=now.date()
+        today=now.weekday()
+        schedule=WorkSchedule.objects.filter(is_active=True).first()
+        if not schedule:
+            return Response({'error':'no active schedule found'},status=status.HTTP_404_NOT_FOUND)
+        try:
+            work_day=WorkDay.objects.get(schedule=schedule,day=today)
+        except WorkDay.DoesNotExist:
+            return Response({'error':'No work schedule for today'},status=status.HTTP_404_NOT_FOUND)
+        scheduled_end=datetime.combine(now,work_day.end_time).replace(tzinfo=timezone.get_current_timezone())
+        delay_minutes=(now-scheduled_end).total_seconds()/60
+        status_text='on_time' if scheduled_end<=now else 'left_early'
+        if attendance.logs.count() > 1:
+            status_text='left_early'
+
+        attendance.check_out_status = status_text
+
+        active_log.check_out=now
         active_log.save()
-       
+        attendance.save()
         log_serializer=AttendanceLogSerializer(active_log)
         return Response({'status':'Check out successfully','log':log_serializer.data},
                         status=status.HTTP_200_OK)
 
 
-class VecationAPIView(generics.ListCreateAPIView):
+class VecationsAPIView(generics.ListCreateAPIView):
+    queryset=Vecation.objects.all()
+    serializer_class=VecationSerializer
+
+class VecationAPIView(generics.RetrieveUpdateDestroyAPIView):
     queryset=Vecation.objects.all()
     serializer_class=VecationSerializer
 
@@ -138,5 +164,7 @@ class SalaryAPIView(generics.ListAPIView):
     queryset=Salary.objects.all()
     serializer_class=SalarySerializer
     def get_queryset(self):
-        employee_id=self.kwargs['employee_id']
-        return Salary.objects.filter(employee__id=employee_id)
+        employee_id=self.kwargs.get('employee_id' , None)
+        if employee_id is not None:
+            return Salary.objects.filter(employee__id=employee_id)
+        return Salary.objects.all()

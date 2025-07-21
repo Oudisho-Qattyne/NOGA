@@ -7,7 +7,10 @@ work_list=WorkScheduleAPIView.as_view({
 work_detail=WorkScheduleAPIView.as_view({
     'get':'retrieve',
     'put':'update',
+    'delete': 'destroy',
 })
+
+
 
 urlpatterns = [
 
@@ -24,8 +27,9 @@ urlpatterns = [
     path('attendance/check_in',AttendanceAPIView.as_view({'post':'check_in'}),name='check_in'),
     path('attendance/check_out',AttendanceAPIView.as_view({'post':'check_out'}),name='check_out'),
 
-    path('vecations/',VecationAPIView.as_view()),
+    path('vecations',VecationsAPIView.as_view()),
+    path('vecations/<int:pk>',VecationAPIView.as_view()),
 
-    path('salaries/',calculate_employee_salary,name='salary_list'),
+    path('salaries',SalaryAPIView.as_view(),name='salary_list'),
     path('salaries/employee/<int:employee_id>',SalaryAPIView.as_view(),name='salary_by_employee')
 ]
