@@ -5,8 +5,6 @@ from .models import *
 
 scheduler = BackgroundScheduler()
 
-def my_scheduled_job():
-    print("تشغيل المهمة المجدولة!")
 
 def markAbsentEmployees():
         today=timezone.localdate()
@@ -21,10 +19,8 @@ def markAbsentEmployees():
                 work_day=WorkDay.objects.get(schedule=schedule,day=today)
                 if work_day.is_working_day:
                     attended_ids=Attendance.objects.filter(date=today).values_list('employee_id',flat=True)
-                    print("attended_ids" , attended_ids)
 
                     on_vecation_ids=Vecation.objects.filter(start_date__lte=today,end_date__gte=today).values_list('employee_id',flat=True)
-                    print("on_vecation_ids" , on_vecation_ids)
 
                     for employee in on_vecation_ids:
                         attendance=Attendance.objects.create(
@@ -37,7 +33,6 @@ def markAbsentEmployees():
                         )
 
                     absent_employees=Employee.objects.exclude(id__in=attended_ids).exclude(id__in=on_vecation_ids)
-                    print("absent_employees" , absent_employees)
                     for employee in absent_employees:
                         attendance=Attendance.objects.create(
                             employee=employee,
@@ -47,7 +42,6 @@ def markAbsentEmployees():
                         AttendanceLog.objects.create(
                             attendance=attendance,
                         )
-                    print(f"{absent_employees.count()} employee marked as absent for {today}")
             except WorkDay.DoesNotExist:
                 print({'error':'No work schedule for today'})
             
