@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import *
 from products.models import Product
+from products.serializers import ProductImageSerializer
 from django.utils import timezone
 from django.db.models import Avg
 class ClientProfileSerializer(serializers.ModelSerializer):
@@ -156,10 +157,11 @@ class ProductSimpleSerializer(serializers.ModelSerializer):
     liked=serializers.SerializerMethodField()
     saved=serializers.SerializerMethodField()
     variant_options=serializers.SerializerMethodField()
+    images = ProductImageSerializer(many = True)
     # reviews=ReviewSerializer(many=True,read_only=True)
     class Meta:
         model=Product
-        fields=["id" , "product_name" , "category",'save_count','average_rating' , "like_count" , "liked" , "saved" , "variant_options"]
+        fields=["id" , "product_name" , "category",'save_count','average_rating' , "like_count" , "liked" , "saved" , "variant_options" , "images"]
     
     def get_save_count(self,obj):
         return obj.save_set.count()
