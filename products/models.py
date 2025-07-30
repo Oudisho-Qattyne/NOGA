@@ -2,7 +2,17 @@ from django.db import models
 from branches.models import Branch
 # from NOGA.utils import *
 import uuid
+from rest_framework import serializers
 
+def upload_to(instance, filename):
+    return 'images/{filename}'.format(filename=filename)
+
+MAX_IMAGE_SIZE = 2 * 1024 * 1024  # 2MB in bytes
+
+# Validate the size of uploaded images
+def validate_image_size(value):
+    if value.size > MAX_IMAGE_SIZE:
+        raise serializers.ValidationError("Image file size is too large (max 2MB)")
 
 
 def generate_unique_code():
@@ -63,9 +73,18 @@ class Product(models.Model):
     @property
     def variants(self):
         return self.variant_set.all()
+    @property
+    def images(self):
+        return self.product_image_set.all()
     def __str__(self) -> str:
         return self.product_name
-    
+
+
+class Product_Image(models.Model):
+    product = models.ForeignKey(Product, related_name='images', on_delete=models.CASCADE)
+    image =  models.ImageField(upload_to=upload_to, blank=True, null=True , validators=[validate_image_size])
+
+
 class Linked_products(models.Model):
     product = models.ForeignKey(Product , on_delete=models.CASCADE , related_name="product1")
     linked_to = models.ForeignKey(Product , on_delete=models.CASCADE , related_name="linked_to_products")
@@ -77,8 +96,16 @@ class Variant(models.Model):
     selling_price = models.FloatField()
     options = models.ManyToManyField(Option , through='Variant_Option')
     sku = models.CharField(max_length=300)
+    qr_code = models.CharField(max_length=300 , null=True , blank=True)
+    qr_codes_download = models.CharField(max_length=300 , null=True , blank=True)
+    @property
+    def images(self):
+        return self.variant_image_set.all()
     
-    
+class Variant_Image(models.Model):
+    variant = models.ForeignKey(Variant, related_name='images', on_delete=models.CASCADE)
+    image =  models.ImageField(upload_to=upload_to, blank=True, null=True , validators=[validate_image_size])
+
 
 class Variant_Option(models.Model):
     variant = models.ForeignKey(Variant , on_delete=models.PROTECT)

@@ -102,8 +102,6 @@ def check_options(variant_options , dp_options):
         p_options.append(temp)
     v_options = set(v_options)
     p_options = set(p_options)
-    print(v_options)
-    print(p_options)
     return p_options.issubset(v_options)
 
 

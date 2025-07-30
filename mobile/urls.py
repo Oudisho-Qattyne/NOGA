@@ -44,7 +44,7 @@ urlpatterns = [
     path('user/saves',UserSavedProductsAPIView.as_view()),
 
 
-    path('product/<int:product_pk>/reviews',review_list),
+    path('products/<int:product_pk>/reviews',review_list),
     path('products/<int:product_pk>/reviews/<int:pk>',review_detail),
 
     

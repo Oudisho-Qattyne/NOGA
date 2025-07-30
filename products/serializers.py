@@ -194,14 +194,21 @@ class OptionSerializer(serializers.ModelSerializer):
         data['unit'] = unit
         data['attribute'] = instance.attribute.attribute
         return data
-    
+
+class VariantImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Variant_Image
+        fields = ['id', 'image']
+
+
 class VariantSerializers(serializers.ModelSerializer):
     options = OptionSerializer(many=True , required=True)
     discount = serializers.SerializerMethodField()
     total = serializers.SerializerMethodField()
+    images = VariantImageSerializer(many = True  , required = False)
     class Meta:
         model=Variant
-        fields = ["id" , "product" , "quantity" , "wholesale_price" , "selling_price" , "options" , "sku" , "discount" , "total"]
+        fields = ["id" , "product" , "quantity" , "wholesale_price" , "selling_price" , "options" , "sku" , "discount" , "total" , "qr_code" , "qr_codes_download" , "images"]
         extra_kwargs={
             "sku":{
                 "read_only":True
@@ -261,7 +268,9 @@ class VariantSerializers(serializers.ModelSerializer):
     
     def create(self, validated_data):
         options = validated_data.pop("options")
+        images_data = self.context['request'].FILES.getlist('images')
         variant_instance = Variant.objects.create(**validated_data)
+
         for option in options:
             option_instance = None
             attribute = Attribute.objects.get(id=option['attribute'])
@@ -280,14 +289,21 @@ class VariantSerializers(serializers.ModelSerializer):
                 option_instance =  option_serialized_data.save()
             variant_instance.options.add(option_instance)
         variant_instance.sku = generate_sku(variant_instance.product.product_name, variant_instance.options)
+        qr_code , qr_codes_download = generateQR(self.context.get('request') , variant_instance.id , f'{variant_instance.product.category.category}-{variant_instance.product.product_name}-{variant_instance.sku}' , variant_instance.product.category.category)
+        variant_instance.qr_code = qr_code
+        variant_instance.qr_codes_download = qr_codes_download
+        for image_data in images_data:
+            Variant_Image.objects.create(variant=variant_instance, image=image_data)
         variant_instance.save()
         
         return variant_instance
     
     def update(self, instance, validated_data):
         options = validated_data.pop("options")
+        images_data = self.context['request'].FILES.getlist('images')
+
         variant_instance = super().update(instance, validated_data)
-        instance.options.filter(attribute__is_categorical=False).delete()
+        # instance.options.filter(attribute__is_categorical=False).delete()
         instance.options.clear()
         for option in options:
             option_instance = None
@@ -307,7 +323,14 @@ class VariantSerializers(serializers.ModelSerializer):
             variant_instance.options.add(option_instance)
         # variant_instance.save()
         variant_instance.sku = generate_sku(variant_instance.product.product_name, variant_instance.options)
-
+        qr_code , qr_codes_download = generateQR(self.context.get('request') , variant_instance.id , f'{variant_instance.product.category.category}-{variant_instance.product.product_name}-{variant_instance.sku}' , variant_instance.product.category.category)
+        variant_instance.qr_code = qr_code
+        variant_instance.qr_codes_download = qr_codes_download
+        if images_data:
+            variant_instance.images.all().delete()
+        print(images_data)
+        for image_data in images_data:
+            Variant_Image.objects.create(variant=variant_instance, image=image_data)
         return variant_instance
 
     def get_discount(self,variant):
@@ -325,12 +348,18 @@ class VariantSerializers(serializers.ModelSerializer):
         data['category'] = instance.product.category.category
         return data
 
+class ProductImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product_Image
+        fields = ['id', 'image']
+
 class ProductSerializer(serializers.ModelSerializer):
     linked_products = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all() , many=True , required=False )
     variants = VariantSerializers(many=True , required=False , read_only=True)
+    images = ProductImageSerializer(many=True  , required=False)
     class Meta:
         model = Product
-        fields = ["id" , "product_name" , "category" , "qr_code" , "qr_codes_download" , "linked_products" , "variants"]
+        fields = ["id" , "product_name" , "category" , "qr_code" , "qr_codes_download" , "linked_products" , "variants" , "images"]
         extra_kwargs={
             "id":{
                 "read_only" : True
@@ -342,14 +371,20 @@ class ProductSerializer(serializers.ModelSerializer):
                 "required":False
             }
         }
+
+
     def create(self, validated_data):
         linked_products = validated_data.pop('linked_products' , [])
+        images_data = self.context['request'].FILES.getlist('images')
+        print(images_data)
         product = Product.objects.create(**validated_data)
         qr_code , qr_codes_download = generateQR(self.context.get('request') , product.id , f'{product.category.category}-{product.product_name}' , product.category.category)
         product.qr_code = qr_code
         product.qr_codes_download = qr_codes_download
         for linked_product in linked_products:
             product.linked_products.add(linked_product)
+        for image_data in images_data:
+            Product_Image.objects.create(product=product, image=image_data)
         product.save()
         return product
     
@@ -359,6 +394,12 @@ class ProductSerializer(serializers.ModelSerializer):
         return super(ProductSerializer, self).to_representation(instance)
 
     def update(self, instance, validated_data):
+        images_data = self.context['request'].FILES.getlist('images')
+
+        if images_data:
+            instance.images.all().delete()
+            for image_data in images_data:
+                Product_Image.objects.create(product=instance, image=image_data)
         variants = Variant.objects.filter(product=instance) 
         if(len(variants.values_list()) != 0):
             if instance.category != validated_data['category']:

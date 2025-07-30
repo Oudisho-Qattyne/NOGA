@@ -91,11 +91,22 @@ class WorkScheduleSerializer(serializers.ModelSerializer):
     
     def create(self, validated_data):
         work_days_data=validated_data.pop('work_days')
+        is_active=validated_data.get("is_active" , False)
         schedule=WorkSchedule.objects.create(**validated_data)
         for day_data in work_days_data:
             WorkDay.objects.create(schedule=schedule,**day_data)
+        if is_active:
+            workSchedules = WorkSchedule.objects.exclude(schedule)
+            for workSchedual in workSchedules:
+                workSchedual.is_active = False
+                workSchedual.save()
         return schedule
     def update(self, instance, validated_data):
+        is_active = validated_data.get('is_active',False)
+        if instance.is_active == True and is_active == False:
+            workSchedule = WorkSchedule.objects.first()
+            workSchedule.is_active = True
+            workSchedule.save()
         instance.name=validated_data.get('name',instance.name)
         instance.is_active=validated_data.get('is_active',instance.is_active)
         instance.updated_at = timezone.now()  # تعيين تاريخ ووقت التحديث الحالي
@@ -104,7 +115,14 @@ class WorkScheduleSerializer(serializers.ModelSerializer):
         work_days_data=validated_data.get('work_days',[])
         for day_data in work_days_data:
             WorkDay.objects.create(schedule=instance,**day_data)
+        if is_active:
+            workSchedules = WorkSchedule.objects.exclude(id=instance.id)
+            print(workSchedules)
+            for workSchedual in workSchedules:
+                workSchedual.is_active = False
+                workSchedual.save()
         return instance
+    
     
 class AttendanceLogSerializer(serializers.ModelSerializer):
     class Meta:

@@ -54,6 +54,13 @@ class WorkScheduleAPIView(viewsets.ModelViewSet):
     queryset = WorkSchedule.objects.all()
     serializer_class = WorkScheduleSerializer
     # permission_classes = [permissions.IsAuthenticated]
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.is_active == True:
+            workSchedule = WorkSchedule.objects.exclude(id=instance.id).first()
+            workSchedule.is_active = True
+            workSchedule.save()
+        return super().destroy(request, *args, **kwargs)
 
 class AttendanceAPIView(viewsets.ModelViewSet):
     queryset=Attendance.objects.all()

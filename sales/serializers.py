@@ -4,6 +4,9 @@ from products.serializers import OptionSerializer , ProductSerializer
 from products.models import Variant , Product
 from NOGA.utils import calculate_discount_instance , check_options , is_valid_offer
 from branches.models import Branch_Products
+import copy
+from django.forms.models import model_to_dict
+
 class DiscountProductOptionSerializer(serializers.ModelSerializer):
     option = OptionSerializer(many=True)
     class Meta:
@@ -409,16 +412,17 @@ class PurchasedProductsSerializer(serializers.ModelSerializer):
                 op = [offer_product for offer_product in offer.offer_products if offer_product.product.id == product.product.id]
                 if len(op) > 0:
                     op = op[0]
-                    print(op.quantity)
                     if op.has_options:
                         op_options = set(option for option in op.options.all() )
                         variant_options = set(option for option in product.options.all())
                         if not check_options(variant_options , op_options):
                             raise serializers.ValidationError({"offer" : "This offer does not include this product."})
                         else:
-                            if quantity != op.quantity:
+                            print(quantity)
+                            print(op.quantity)
+                            if quantity > op.quantity:
                                 raise serializers.ValidationError({"offer" : "This offer does not include this amount of product."})
-                    if quantity != op.quantity:
+                    if quantity > op.quantity:
                                 raise serializers.ValidationError({"offer" : "This offer does not include this amount of product."})
 
                 else:
@@ -465,6 +469,7 @@ class PurchaseSerializer(serializers.ModelSerializer):
         }
     def validate(self, attrs):
         errors = {}
+        purchased_products_errors = []
 
         validated_data = super().validate(attrs)
         purchased_products = validated_data.get("purchased_products" , None)
@@ -478,23 +483,55 @@ class PurchaseSerializer(serializers.ModelSerializer):
             errors["purchased_products"] = "This field is required"
         products_in_pack = {}
         products = {}
+        all_products = {}
         if len(purchased_offers) > 0:
             # products_in_pack = {product for product in purchased_product.items() if product["in_pack"] == True}
             for purchased_product in purchased_products:
                 in_pack = purchased_product.get("in_pack" , False)
+                if purchased_product["product"].product.id in all_products:
+                    all_products[purchased_product["product"].id]["quantity"] += purchased_product["quantity"]
+                else :
+                    all_products[purchased_product["product"].id] = purchased_product
                 if in_pack == True:
-                    if purchased_product["product"].id in products_in_pack:
+                    if purchased_product["product"].product.id in products_in_pack:
                         products_in_pack[purchased_product["product"].id]["quantity"] += purchased_product["quantity"]
                     else :
                         products_in_pack[purchased_product["product"].id] = purchased_product
                 else:
-                    if purchased_product["product"].id in products:
+                    if purchased_product["product"].product.id in products:
                         products[purchased_product["product"].id]["quantity"] += purchased_product["quantity"]
                     else :
                         products[purchased_product["product"].id] = purchased_product
-        print("products_in_pack : " , products_in_pack)
-        print("products : " , products)
-    
+        purchased_offers_errors = []
+        products_in_pack_temp = copy.deepcopy(products_in_pack)
+        for purchased_offer in purchased_offers:
+            purchased_offer_temp = copy.deepcopy(purchased_offer)
+            offer_products =  list(model_to_dict(offer_product) for offer_product in purchased_offer_temp.offer_products) 
+            for offer_product in offer_products:
+                if offer_product["quantity"] > 0:
+                    for key , product_in_pack in products_in_pack.items():
+                        if key in products_in_pack_temp:
+                            if product_in_pack["product"].product.id == offer_product["product"] and product_in_pack["offer"].id == offer_product["id"]:
+                                if offer_product["has_options"]:
+                                    product = products_in_pack_temp[offer_product["product"]]
+                                    product = product["product"]
+                                    variant_options = set(option for option in product.options.all())
+                                    if check_options(variant_options , offer_product["options"]) :
+                                        offer_product["quantity"] -= product_in_pack['quantity']
+                                        products_in_pack_temp.pop(key)
+                                else:
+                                    offer_product["quantity"] -= product_in_pack['quantity']
+                                    products_in_pack_temp.pop(key)
+            if products_in_pack_temp is not None:
+                pass
+        #             if offer_product.has_options:
+        #                 product = products_in_pack_temp[offer_product.product.id]
+        #                 product = product["product"]
+        #                 op_options = set(option for option in offer_product.options.all() )
+        #                 variant_options = set(option for option in product.options.all())
+        #                 if check_options(variant_options , op_options) and quantity != op.quantity:
+        #                     products_in_pack_temp.pop(offer_product.product.id)
+        #             else:
         for purchased_product in purchased_products:
             # purchased_product["purchase"] = purchase
             product = purchased_product["product"]
@@ -504,20 +541,23 @@ class PurchaseSerializer(serializers.ModelSerializer):
             offer  = purchased_product.get("offer" , None)
             branch_product = Branch_Products.objects.filter(product=product , branch=branch)
             if len(branch_product) > 0:
-               
                 if branch_product[0].quantity < quantity: 
-                    errors[product.product.product_name] = "This branch don't have the needed quantity"
+                    purchased_products_errors.append({"quantity" : "This branch don't have the needed quantity"})
+                else:
+                    purchased_products_errors.append({})
             else:
-                errors[product.product.product_name] = "This branch don't have this product"
+                purchased_products_errors.append({"product" : "This branch don't have this product"})
             purchased_product["wholesale_price"] = purchased_product["product"].wholesale_price
             purchased_product["selling_price"] = purchased_product["product"].selling_price
             purchased_product["product"] = purchased_product["product"].id
             if in_pack == True:
                 purchased_product["offer"] = purchased_product["offer"].id
-            purchased_product_serialized_data = PurchasedProductsSerializer(data = purchased_product)
-            purchased_product_serialized_data.is_valid(raise_exception=True)
-            if len(errors) > 0:
-                raise serializers.ValidationError(errors)
+            # purchased_product_serialized_data = PurchasedProductsSerializer(data = purchased_product)
+            # purchased_product_serialized_data.is_valid(raise_exception=True)
+        if all(not d for d in purchased_products) :
+            errors["purchased_products"] = purchased_products_errors
+        if len(errors) > 0:
+            raise serializers.ValidationError(errors)
         return validated_data
     
     def create(self, validated_data):

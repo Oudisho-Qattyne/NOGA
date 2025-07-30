@@ -14,22 +14,36 @@ class ClientProfileSerializer(serializers.ModelSerializer):
         user = self.context['request'].user
         validated_data['user'] = user
         return super().create(validated_data)
-    
+
 class ReplaySerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
-        fields = ['user_id','product_id','comment_text','created_at','updated_at']
+        fields = ['user_id','product_id','comment_text','created_at','updated_at' ]
 
 class CommentSerializer(serializers.ModelSerializer):
+    username = serializers.SerializerMethodField()
+    image = serializers.SerializerMethodField()
     class Meta:
         model=Comment
-        fields=['id' , 'user_id','product_id','comment_text','replay_to','created_at','updated_at' ]
+        fields=['id' , 'user_id','product_id','comment_text','replay_to','created_at','updated_at' , 'username' , 'image']
         extra_kwargs = {
             "user_id" : {'read_only' : True},
             "created_at":{'read_only':True},
             "updated_at":{'read_only':True},
             "product_id":{'read_only':True},
+            "image":{'read_only':True},
+            "username":{'read_only':True},
         }
+    def get_username(self, obj):
+        return obj.user_id.username
+    def get_image(self, obj):
+        try:
+            client_profile = Client_Profile.objects.get(user=obj.user_id)
+            return client_profile.image.url if client_profile.image else None
+        except Client_Profile.DoesNotExist:
+            return None
+            
+    
     def create(self, validated_data):
         user = self.context['request'].user
         validated_data['user_id'] = user
@@ -37,9 +51,11 @@ class CommentSerializer(serializers.ModelSerializer):
     
     
 class LikeSerializer(serializers.ModelSerializer):
+    username = serializers.SerializerMethodField()
+    image = serializers.SerializerMethodField()
     class Meta:
         model=Like
-        fields=['user_id','product_id']
+        fields=['user_id','product_id' , 'username' , 'image']
         extra_kwargs = {
             "user_id" : {'read_only' : True},
         }
@@ -47,7 +63,14 @@ class LikeSerializer(serializers.ModelSerializer):
         user = self.context['request'].user
         validated_data['user_id'] = user
         return super().create(validated_data)
-    
+    def get_username(self, obj):
+        return obj.user_id.username
+    def get_image(self, obj):
+        try:
+            client_profile = Client_Profile.objects.get(user=obj.user_id)
+            return client_profile.image.url if client_profile.image else None
+        except Client_Profile.DoesNotExist:
+            return None
 
 class Saveserializer(serializers.ModelSerializer):
     class Meta:
@@ -90,9 +113,11 @@ class UserLikedProductsSerializer(serializers.ModelSerializer):
 class ReviewSerializer(serializers.ModelSerializer):
     user=serializers.StringRelatedField(read_only=True)
     rating_display=serializers.SerializerMethodField()
+    username = serializers.SerializerMethodField()
+    image = serializers.SerializerMethodField()
     class Meta:
         model=Review
-        fields=['id' , 'user','product','rating','rating_display','comment','created_at','updated_at']
+        fields=['id' , 'user','product','rating','rating_display','comment','created_at','updated_at' , 'username' , 'image']
         read_only_fields=['user','product','rating_display','created_at','updated_at']
     def create(self, validated_data):
         user = self.context['request'].user
@@ -116,7 +141,14 @@ class ReviewSerializer(serializers.ModelSerializer):
     
     def format_datetime(self,value):
         return timezone.localtime(value).strftime('%Y-%m-%d %H:%M:%S')
-    
+    def get_username(self, obj):
+        return obj.user_id.username
+    def get_image(self, obj):
+        try:
+            client_profile = Client_Profile.objects.get(user=obj.user_id)
+            return client_profile.image.url if client_profile.image else None
+        except Client_Profile.DoesNotExist:
+            return None
 class ProductSimpleSerializer(serializers.ModelSerializer):
     save_count=serializers.SerializerMethodField()
     like_count=serializers.SerializerMethodField()
