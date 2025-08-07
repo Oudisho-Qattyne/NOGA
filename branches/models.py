@@ -21,3 +21,14 @@ class Branch_Products(models.Model):
     product = models.ForeignKey("products.Variant" , on_delete=models.PROTECT)
     quantity = models.PositiveIntegerField()
     
+class Camera(models.Model):
+    CAMERA_TYPES=[
+        ('monitoring', 'Monitoring'),
+        ('attendance', 'Attendance'),
+        ('visitors', 'Visitors'),
+    ]
+    camera_type = models.CharField(max_length=30 , default="monitoring")
+    branch = models.ForeignKey(Branch , on_delete=models.PROTECT)
+    source_url = models.CharField(max_length=300)
+    view_url = models.CharField(max_length=300)
+    is_active = models.BooleanField(default=False)

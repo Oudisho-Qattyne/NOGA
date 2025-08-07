@@ -6,6 +6,9 @@ from rest_framework import filters
 from django_filters import rest_framework as filter
 from NOGA.utils import *
 from .filters import *
+
+from django.http import StreamingHttpResponse
+import time
 # Create your views here.
 
 class BranchsAPIView(generics.ListAPIView , generics.ListCreateAPIView ):
@@ -64,4 +67,45 @@ class BranchProductsAPIView(generics.ListAPIView):
         "product__options__attribute__attribute",
         "product__sku"
     ]
-    
+
+
+class CamerasApiView(generics.CreateAPIView , generics.ListAPIView):
+    queryset = Camera.objects.all()
+    serializer_class = CamerasSerializer
+    filter_backends=[filter.DjangoFilterBackend , filters.SearchFilter , filters.OrderingFilter]
+    pagination_class = Paginator
+    search_fields = [
+        "id",
+        "camera_type",
+        "source_url",
+        "view_url",
+        "branch__city__city_name",
+        "is_active",
+        "branch"
+
+    ]
+    ordering_fields = [
+        "id",
+        "source_url",
+        "view_url",
+        "view_source",
+        "branch__city__city_name",
+        "is_active",
+        "branch"
+
+    ]
+    filterset_fields = [
+        "id",
+        "camera_type",
+        "source_url",
+        "view_url",
+        "branch__city__city_name",
+        "is_active",
+        "branch"
+    ]
+
+class CameraApiView(generics.DestroyAPIView , generics.UpdateAPIView):
+    queryset = Camera.objects.all()
+    serializer_class = CamerasSerializer
+
+

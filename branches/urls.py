@@ -9,5 +9,9 @@ urlpatterns = [
     path('cities/<int:pk>' , CityAPIView.as_view() ),
 
     path('products/' , BranchProductsAPIView.as_view() ),
-    path('products/<int:pk>' , CityAPIView.as_view() ),
+    path('products/<int:pk>' , BranchProductsAPIView.as_view() ),
+    path('cameras/' , CamerasApiView.as_view() ),
+    path('cameras/<int:pk>' , CameraApiView.as_view() ),
+
+
 ]

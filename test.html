@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>WebSocket Image Viewer & Uploader</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    input[type="text"], input[type="file"] { width: 100%; margin: 10px 0; }
+    img { max-width: 100%; border: 1px solid #ccc; margin-top: 10px; }
+    button { padding: 10px 20px; margin: 5px 0; }
+  </style>
+</head>
+<body>
+
+  <h2>Frame Viewer</h2>
+  <input type="text" id="frameSocketUrl" placeholder="Enter WebSocket URL for receiving frames" />
+  <button onclick="connectFrameSocket()">Connect Frame Socket</button>
+  <img id="frameImage" alt="Live frame will appear here" />
+
+  <hr>
+
+  <h2>Image Sender</h2>
+  <input type="text" id="sendSocketUrl" placeholder="Enter WebSocket URL for sending image" />
+  <input type="file" id="imageInput" accept="image/*" />
+  <button onclick="sendImage()">Send Image</button>
+
+  <script>
+    let frameSocket = null;
+    let sendSocket = null;
+
+    function connectFrameSocket() {
+      const url = document.getElementById("frameSocketUrl").value;
+      if (frameSocket) frameSocket.close();
+
+      frameSocket = new WebSocket(url);
+
+      frameSocket.onopen = () => console.log("Connected to frame WebSocket");
+      frameSocket.onmessage = (event) => {
+        const data = event.data;
+        const img = document.getElementById("frameImage");
+
+        // Option 1: If data is base64-encoded image
+        if (typeof data === "string" && data.startsWith("data:image")) {
+          img.src = data;
+        } else if (data instanceof Blob) {
+          // Option 2: If server sends binary image blobs
+          const url = URL.createObjectURL(data);
+          img.src = url;
+        } else {
+          console.warn("Unknown data format:", data);
+        }
+      };
+      frameSocket.onerror = (err) => console.error("Frame socket error:", err);
+    }
+
+    function sendImage() {
+      const url = document.getElementById("sendSocketUrl").value;
+      const fileInput = document.getElementById("imageInput");
+      const file = fileInput.files[0];
+
+      if (!file) {
+        alert("Please select an image file first.");
+        return;
+      }
+
+      if (!sendSocket || sendSocket.readyState !== WebSocket.OPEN) {
+        sendSocket = new WebSocket(url);
+
+        sendSocket.onopen = () => {
+          console.log("Connected to send WebSocket. Sending image...");
+          sendSocket.send(file);
+        };
+
+        sendSocket.onerror = (err) => console.error("Send socket error:", err);
+      } else {
+        sendSocket.send(file);
+      }
+    }
+  </script>
+
+</body>
+</html>

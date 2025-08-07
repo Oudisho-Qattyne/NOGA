@@ -31,5 +31,7 @@ urlpatterns = [
     path('vecations/<int:pk>',VecationAPIView.as_view()),
 
     path('salaries',SalaryAPIView.as_view(),name='salary_list'),
-    path('salaries/employee/<int:employee_id>',SalaryAPIView.as_view(),name='salary_by_employee')
+    path('salaries/employee/<int:employee_id>',SalaryAPIView.as_view(),name='salary_by_employee'),
+
+    path('available_managers',getAvailableManagers)
 ]

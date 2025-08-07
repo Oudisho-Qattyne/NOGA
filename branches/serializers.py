@@ -2,6 +2,7 @@ from rest_framework import serializers
 from .models import *
 from employees.models import Employee
 from products.serializers import VariantSerializers
+from django.urls import reverse
 
 class BranchSerializer(serializers.ModelSerializer):
     city_name = serializers.StringRelatedField(source='city')
@@ -67,4 +68,29 @@ class BranchProductsSerializer(serializers.ModelSerializer):
         fields = ["id" , "branch" , "product" , "quantity" , "branch_name"]
         
         
-     
+class CamerasSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Camera
+        fields = ["id" , "branch" , "camera_type" , "source_url" , "view_url" , "is_active"]
+        extra_kwargs = {
+            "source_url":{
+                "read_only" : True
+            },
+            "view_url":{
+                "read_only" : True
+            }
+        }
+    def create(self, validated_data):
+        camera_instance = super().create(validated_data)
+        request = self.context.get('request')
+        # بناء URL باستخدام reverse وتمرير معرف الكائن
+        # url = reverse('camera-detail', kwargs={'pk': camera_instance.pk})
+        source_url = request.build_absolute_uri('/ws/source/'+str(camera_instance.id))
+        view_url = request.build_absolute_uri('/ws/view/'+str(camera_instance.id))
+        source_url = source_url.replace('http://', 'ws://').replace('https://', 'wss://')
+        view_url = view_url.replace('http://', 'ws://').replace('https://', 'wss://')
+        camera_instance.source_url = source_url
+        camera_instance.view_url = view_url
+        camera_instance.save()
+        return camera_instance
+

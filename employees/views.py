@@ -5,9 +5,10 @@ from .serializers import *
 from django_filters import rest_framework as filter
 from rest_framework.response import Response
 from rest_framework import generics,filters,viewsets,permissions,status
-from rest_framework.decorators import action
+from rest_framework.decorators import action , api_view
 from django.utils import timezone
 from datetime import datetime,timedelta
+
 # Create your views here.
     
 class EmployeesApiView(generics.ListAPIView,generics.ListCreateAPIView):
@@ -175,3 +176,30 @@ class SalaryAPIView(generics.ListAPIView):
         if employee_id is not None:
             return Salary.objects.filter(employee__id=employee_id)
         return Salary.objects.all()
+    
+
+@api_view(['GET'])
+def getAvailableManagers(request):
+    employees = Employee.objects.all()
+    managers = employees.filter(job_type = 4)
+    serializedManagers = EmployeeSerializer(managers , many=True)
+    managers = serializedManagers.data
+    
+    branches = Branch.objects.all()
+    serializedBranches = BranchSerializer(branches , many=True)
+    branches = serializedBranches.data
+    
+    unAvailableManagers = [branch['manager'] for branch in branches ]
+    availableManagers = [manager for manager in managers if manager['id'] not in unAvailableManagers ]
+    
+    
+    
+    # managers = Employee.objects.all()
+    # availableManagers = managers.filter(job_type = 4 , branch = "null")
+    # availableManagers = EmployeeSerializer(availableManagers , many=True)
+    # print(availableManagers.data)
+    return Response({
+        "results" : availableManagers
+    })
+    
+    
