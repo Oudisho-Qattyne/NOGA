@@ -17,7 +17,7 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from django.core.exceptions import ObjectDoesNotExist
 from asgiref.sync import sync_to_async
 import cv2
-import pandas as pd
+# import pandas as pd
 import numpy as np
 from ultralytics import YOLO
 
@@ -101,21 +101,21 @@ class SourceConsumer(AsyncWebsocketConsumer):
 
                 a=results[0].boxes.data
 
-                px=pd.DataFrame(a).astype("float")
+                # px=pd.DataFrame(a).astype("float")
 
                 list=[]
                         
-                for index,row in px.iterrows():
-                    x1=int(row[0])
-                    y1=int(row[1])
-                    x2=int(row[2])
-                    y2=int(row[3])
-                    d=int(row[5])
-                    c=class_list[d]
+                # for index,row in px.iterrows():
+                #     x1=int(row[0])
+                #     y1=int(row[1])
+                #     x2=int(row[2])
+                #     y2=int(row[3])
+                #     d=int(row[5])
+                #     c=class_list[d]
 
-                    if 'person' in c:
-                        cv2.rectangle(frame,(x1,y1),(x2,y2),(0,255,0),2)
-                        cv2.putText(frame,str(c),(x1,y1),cv2.FONT_HERSHEY_COMPLEX,(0.5),(255,255,255),1)
+                #     if 'person' in c:
+                #         cv2.rectangle(frame,(x1,y1),(x2,y2),(0,255,0),2)
+                #         cv2.putText(frame,str(c),(x1,y1),cv2.FONT_HERSHEY_COMPLEX,(0.5),(255,255,255),1)
                     
                     
                 cv2.polylines(frame,[np.array(area1,np.int32)],True,(255,0,0),2)
