@@ -1,6 +1,11 @@
 import django_filters
-from .models import Variant
+from .models import Variant , Option
 
+class OptionFilter(django_filters.FilterSet):
+    attribute = django_filters.CharFilter(field_name='attribute__attribute' , lookup_expr='icontains')
+    class Meta:
+        model = Option
+        fields = {}
 class VariantFilter(django_filters.FilterSet):
     option = django_filters.CharFilter(field_name='options__option', lookup_expr='icontains')
     attribute = django_filters.CharFilter(field_name='options__attribute__attribute', lookup_expr='icontains')

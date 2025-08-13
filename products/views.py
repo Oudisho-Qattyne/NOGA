@@ -97,8 +97,9 @@ class OptionsAPIView(generics.ListAPIView , generics.CreateAPIView):
     queryset = Option.objects.all()
     serializer_class = OptionSerializer
     pagination_class = Paginator
+    filterset_class = OptionFilter  
     filter_backends=[filter.DjangoFilterBackend , filters.SearchFilter , filters.OrderingFilter]
-    filterset_fields=["id" , "option" , "attribute" ]
+    filterset_fields=["id" , "option"  ]
     search_fields=["id" , "option" , "attribute"]
     ordering_fields=["id" , "option" , "attribute" ]
 
@@ -142,7 +143,6 @@ class VariantsAPIView(generics.ListAPIView , generics.CreateAPIView):
         "sku"
     ]
     def get_queryset(self):
-        
         queryset = super().get_queryset()
         attribute_names = Attribute.objects.values_list('attribute', flat=True)
 
@@ -150,9 +150,10 @@ class VariantsAPIView(generics.ListAPIView , generics.CreateAPIView):
         attribute_names_list = list(attribute_names)
         for key, value in self.request.query_params.items():
             if key in attribute_names_list: 
+                value = value.split(",")
                 queryset = queryset.filter(
                 options__attribute__attribute=key,
-                options__option=value
+                options__option__in=value
             )
         return queryset.distinct()
 class VariantAPIView(generics.DestroyAPIView , generics.UpdateAPIView , generics.RetrieveAPIView):

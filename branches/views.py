@@ -75,9 +75,10 @@ class BranchProductsAPIView(generics.ListAPIView):
         attribute_names_list = list(attribute_names)
         for key, value in self.request.query_params.items():
             if key in attribute_names_list: 
+                value = value.split(',')
                 queryset = queryset.filter(
                 product__options__attribute__attribute=key,
-                product__options__option=value
+                product__options__option__in=value
             )
         return queryset.distinct()
 
