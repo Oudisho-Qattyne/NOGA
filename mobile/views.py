@@ -100,7 +100,6 @@ class ProductSimpleAPIView(generics.ListAPIView):
         "product_name",
         "variant__quantity",
         "variant__selling_price",
-        "variant__wholesale_price",
         "variant__options__option",
         # "options__unit__unit",
         "variant__options__attribute__attribute", 
@@ -111,7 +110,6 @@ class ProductSimpleAPIView(generics.ListAPIView):
         "product_name",
         "variant__quantity",
         "variant__selling_price",
-        "variant__wholesale_price",
         "variant__options__option",
         # "options__unit__unit",
         "variant__options__attribute__attribute",
@@ -125,9 +123,10 @@ class ProductSimpleAPIView(generics.ListAPIView):
         attribute_names_list = list(attribute_names)
         for key, value in self.request.query_params.items():
             if key in attribute_names_list: 
+                value = value.split(",")
                 queryset = queryset.filter(
                 variant__options__attribute__attribute=key,
-                variant__options__option=value
+                variant__options__option__in=value
             )
         return queryset.distinct()
 class UserSavedProductsAPIView(generics.RetrieveAPIView):
