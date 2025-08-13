@@ -6,7 +6,7 @@ from rest_framework import filters
 from django_filters import rest_framework as filter
 from NOGA.utils import *
 from .filters import *
-
+from products.models import Attribute
 from django.http import StreamingHttpResponse
 import time
 # Create your views here.
@@ -67,7 +67,19 @@ class BranchProductsAPIView(generics.ListAPIView):
         "product__options__attribute__attribute",
         "product__sku"
     ]
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        attribute_names = Attribute.objects.values_list('attribute', flat=True)
 
+        # Convert the QuerySet to a list
+        attribute_names_list = list(attribute_names)
+        for key, value in self.request.query_params.items():
+            if key in attribute_names_list: 
+                queryset = queryset.filter(
+                product__options__attribute__attribute=key,
+                product__options__option=value
+            )
+        return queryset.distinct()
 
 class CamerasApiView(generics.CreateAPIView , generics.ListAPIView):
     queryset = Camera.objects.all()

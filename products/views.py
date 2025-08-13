@@ -142,24 +142,19 @@ class VariantsAPIView(generics.ListAPIView , generics.CreateAPIView):
         "sku"
     ]
     def get_queryset(self):
+        
         queryset = super().get_queryset()
-        filters = {}
         attribute_names = Attribute.objects.values_list('attribute', flat=True)
 
         # Convert the QuerySet to a list
         attribute_names_list = list(attribute_names)
         for key, value in self.request.query_params.items():
             if key in attribute_names_list: 
-                filters[f'options__attribute__attribute'] = key
-                filters[f'options__option'] = value
-
-        if filters:
-            query = Q()
-            for key, value in filters.items():
-                query &= Q(**{key: value})
-            queryset = queryset.filter(query)
-
-        return queryset
+                queryset = queryset.filter(
+                options__attribute__attribute=key,
+                options__option=value
+            )
+        return queryset.distinct()
 class VariantAPIView(generics.DestroyAPIView , generics.UpdateAPIView , generics.RetrieveAPIView):
     queryset = Variant.objects.all()
     serializer_class = VariantSerializers

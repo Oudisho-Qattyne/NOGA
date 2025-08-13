@@ -4,6 +4,7 @@ from products.models import Product
 from products.serializers import ProductImageSerializer
 from django.utils import timezone
 from django.db.models import Avg
+from django.db.models import Max
 class ClientProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model=Client_Profile
@@ -157,11 +158,12 @@ class ProductSimpleSerializer(serializers.ModelSerializer):
     liked=serializers.SerializerMethodField()
     saved=serializers.SerializerMethodField()
     variant_options=serializers.SerializerMethodField()
+    price=serializers.SerializerMethodField()
     images = ProductImageSerializer(many = True)
     # reviews=ReviewSerializer(many=True,read_only=True)
     class Meta:
         model=Product
-        fields=["id" , "product_name" , "category",'save_count','average_rating' , "like_count" , "liked" , "saved" , "variant_options" , "images"]
+        fields=["id" , "product_name" , "category",'save_count','average_rating' , "like_count" , "liked" , "saved" , "variant_options" , "images" , "price"]
     
     def get_save_count(self,obj):
         return obj.save_set.count()
@@ -205,5 +207,8 @@ class ProductSimpleSerializer(serializers.ModelSerializer):
 
         # تحويل المجموعات إلى قوائم
         return {k: list(v) for k, v in options_dict.items()}
-        
     
+    def get_price(self, obj):
+        variants = obj.variants.all()
+        max_price = variants.aggregate(Max('selling_price'))['selling_price__max']
+        return max_price

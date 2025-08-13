@@ -7,7 +7,10 @@ from rest_framework.permissions import IsAuthenticated
 from django_filters import rest_framework as filter
 from django.db.models import Prefetch
 from rest_framework.decorators import action
+from django.db.models import Q
 from rest_framework.exceptions import ValidationError , NotFound
+from .filters import *
+from products.models import Attribute
 # Create your views here.
 
 
@@ -89,7 +92,44 @@ class ProductSimpleAPIView(generics.ListAPIView):
         reviews = product.reviews.all()
         serializer = ReviewSerializer(reviews, many=True)
         return Response(serializer.data) 
+    filter_backends=[filter.DjangoFilterBackend , filters.SearchFilter , filters.OrderingFilter]
+    filterset_class =  MobileProductFilter
+    pagination_class = Paginator
+    search_fields = [
+        "id",
+        "product_name",
+        "variant__quantity",
+        "variant__selling_price",
+        "variant__wholesale_price",
+        "variant__options__option",
+        # "options__unit__unit",
+        "variant__options__attribute__attribute", 
+        "variant__sku"
+    ]
+    ordering_fields = [
+        "id",
+        "product_name",
+        "variant__quantity",
+        "variant__selling_price",
+        "variant__wholesale_price",
+        "variant__options__option",
+        # "options__unit__unit",
+        "variant__options__attribute__attribute",
+        "variant__sku"
+    ]
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        attribute_names = Attribute.objects.values_list('attribute', flat=True)
 
+        # Convert the QuerySet to a list
+        attribute_names_list = list(attribute_names)
+        for key, value in self.request.query_params.items():
+            if key in attribute_names_list: 
+                queryset = queryset.filter(
+                variant__options__attribute__attribute=key,
+                variant__options__option=value
+            )
+        return queryset.distinct()
 class UserSavedProductsAPIView(generics.RetrieveAPIView):
     serializer_class=UserSavedProductsSerializer
     permission_classes=[IsAuthenticated]
