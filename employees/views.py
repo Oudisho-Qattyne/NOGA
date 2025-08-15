@@ -75,6 +75,8 @@ class AttendanceAPIView(viewsets.ModelViewSet):
         if image_file:
             image_bytes = image_file.read()
             image = Image.open(io.BytesIO(image_bytes))
+            if image.mode != 'RGB':
+                image = image.convert('RGB')
             image_np = np.array(image)
             result = recognize(image_np , "mediafiles/pickle")
             if not result.isdigit():
@@ -83,12 +85,12 @@ class AttendanceAPIView(viewsets.ModelViewSet):
         else:
             employee_id = request.data.get('employee')
             if not employee_id:
-                return Response({'employee':'Employee ID is required'},status=status.HTTP_404_NOT_FOUND)
+                return Response({'employee':'Employee ID is required'},status=status.HTTP_400_BAD_REQUEST)
         employee = None        
         try:
             employee = Employee.objects.get(id=employee_id)
         except Employee.DoesNotExist:
-            return Response({'error':'Employee not found'},status=400)
+            return Response({'error':'Employee not found'},status=status.HTTP_404_NOT_FOUND)
         
         now=timezone.now()
         today_date=now.date()
@@ -138,6 +140,8 @@ class AttendanceAPIView(viewsets.ModelViewSet):
         if image_file:
             image_bytes = image_file.read()
             image = Image.open(io.BytesIO(image_bytes))
+            if image.mode != 'RGB':
+                image = image.convert('RGB')
             image_np = np.array(image)
             result = recognize(image_np , "mediafiles/pickle")
             if not result.isdigit():

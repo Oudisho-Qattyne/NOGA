@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Camera Capture and Upload</title>
+<style>
+  video, canvas {
+    border: 1px solid black;
+    max-width: 100%;
+    height: auto;
+  }
+  #preview {
+    margin-top: 10px;
+  }
+</style>
+</head>
+<body>
+
+<h2>Open Camera, Capture Image and Send to API</h2>
+
+<label for="apiUrl">Enter API URL:</label>
+<input type="text" id="apiUrl" placeholder="https://example.com/api/upload" style="width: 80%;" />
+
+<br /><br />
+
+<video id="video" autoplay playsinline width="640" height="480"></video>
+<br />
+<button id="captureBtn">Capture & Send</button>
+
+<div id="preview"></div>
+<div id="result"></div>
+
+<script>
+  const video = document.getElementById('video');
+  const captureBtn = document.getElementById('captureBtn');
+  const preview = document.getElementById('preview');
+  const result = document.getElementById('result');
+  const apiUrlInput = document.getElementById('apiUrl');
+
+  // طلب الوصول للكاميرا ونقل البث إلى الفيديو
+  async function startCamera() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      video.srcObject = stream;
+    } catch (err) {
+      alert('Error accessing camera: ' + err);
+    }
+  }
+
+  // التقاط صورة من الفيديو
+  function captureImage() {
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    return canvas;
+  }
+
+  // تحويل الصورة إلى Blob بصيغة PNG
+  function canvasToBlob(canvas) {
+    return new Promise(resolve => {
+      canvas.toBlob(blob => {
+        resolve(blob);
+      }, 'image/png');
+    });
+  }
+
+  // إرسال الصورة إلى API
+  async function sendImageToApi(apiUrl, imageBlob) {
+      const formData = new FormData();
+      const imageFile = new File([imageBlob], 'capture.png', { type: imageBlob.type });
+      console.log(imageFile);
+      
+      formData.append('image', imageFile);
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      console.log(response);
+      if (!response.ok) {
+        throw new Error('Server responded with ' + response.status);
+      }
+      
+      const data = await response.json();
+      return data;
+
+
+  }
+
+  captureBtn.addEventListener('click', async () => {
+    const apiUrl = apiUrlInput.value.trim();
+    if (!apiUrl) {
+      alert('Please enter the API URL before capturing the image.');
+      return;
+    }
+
+    const canvas = captureImage();
+    preview.innerHTML = ''; // تنظيف العرض القديم
+    preview.appendChild(canvas);
+
+    try {
+      const imageBlob = await canvasToBlob(canvas);
+      result.textContent = 'Sending image to API...';
+      const response = await sendImageToApi(apiUrl, imageBlob);
+      result.textContent = 'API Response: ' + JSON.stringify(response);
+    } catch (err) {
+      result.textContent = 'Error sending image: ' + err.message;
+    }
+  });
+
+  startCamera();
+</script>
+
+</body>
+</html>
