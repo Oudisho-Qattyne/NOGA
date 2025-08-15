@@ -8,7 +8,9 @@ from rest_framework import generics,filters,viewsets,permissions,status
 from rest_framework.decorators import action , api_view
 from django.utils import timezone
 from datetime import datetime,timedelta
-
+import io
+from PIL import Image
+import numpy as np
 # Create your views here.
     
 class EmployeesApiView(generics.ListAPIView,generics.ListCreateAPIView):
@@ -68,11 +70,26 @@ class AttendanceAPIView(viewsets.ModelViewSet):
     serializer_class = AttendanceSerializer
     @action(detail=False, methods=['post'])
     def check_in(self, request):
-        employee_id = request.data.get('employee')
-        if not employee_id:
-            return Response({'employee':'Employee ID is required'},status=status.HTTP_404_NOT_FOUND)
+        image_file = request.FILES.get('image')
+        employee_id = None
+        if image_file:
+            image_bytes = image_file.read()
+            image = Image.open(io.BytesIO(image_bytes))
+            image_np = np.array(image)
+            result = recognize(image_np , "mediafiles/pickle")
+            if not result.isdigit():
+                return Response({'error': result}, status=status.HTTP_400_BAD_REQUEST)
+            employee_id = result
+        else:
+            employee_id = request.data.get('employee')
+            if not employee_id:
+                return Response({'employee':'Employee ID is required'},status=status.HTTP_404_NOT_FOUND)
+        employee = None        
+        try:
+            employee = Employee.objects.get(id=employee_id)
+        except Employee.DoesNotExist:
+            return Response({'error':'Employee not found'},status=400)
         
-        employee = Employee.objects.get(id=employee_id)
         now=timezone.now()
         today_date=now.date()
         today=now.weekday()
@@ -85,9 +102,9 @@ class AttendanceAPIView(viewsets.ModelViewSet):
             return Response({'error':'No work schedule for today'},status=status.HTTP_404_NOT_FOUND)
         scheduled_start=datetime.combine(now,work_day.start_time).replace(tzinfo=timezone.get_current_timezone())
         delay_minutes=(now-scheduled_start).total_seconds()/60
-        print("delay_minutes" , delay_minutes , now)
+        # print("delay_minutes" , delay_minutes , now)
         status_text='on_time' if delay_minutes<=30 else 'late'
-        print(delay_minutes<=30 , status_text)
+        # print(delay_minutes<=30 , status_text)
         attendance, created = Attendance.objects.get_or_create(
             employee=employee,
             date=today_date,
@@ -116,11 +133,25 @@ class AttendanceAPIView(viewsets.ModelViewSet):
         
     @action(detail=False,methods=['post'])
     def check_out(self,request):
-
-        employee_id=request.data.get('employee')
-        if not employee_id:
+        image_file = request.FILES.get('image')
+        employee_id = None
+        if image_file:
+            image_bytes = image_file.read()
+            image = Image.open(io.BytesIO(image_bytes))
+            image_np = np.array(image)
+            result = recognize(image_np , "mediafiles/pickle")
+            if not result.isdigit():
+                return Response({'error': result}, status=status.HTTP_400_BAD_REQUEST)
+            employee_id = result
+        else:
+            employee_id = request.data.get('employee')
+            if not employee_id:
+                return Response({'employee':'Employee ID is required'},status=status.HTTP_404_NOT_FOUND)
+        employee = None        
+        try:
+            employee = Employee.objects.get(id=employee_id)
+        except Employee.DoesNotExist:
             return Response({'error':'Employee not found'},status=400)
-        employee = Employee.objects.get(id=employee_id)
         
         try:
             attendance = Attendance.objects.get(

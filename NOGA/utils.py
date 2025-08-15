@@ -16,7 +16,7 @@ class Paginator(PageNumberPagination):
 def upload_to(instance, filename):
     return 'images/{filename}'.format(filename=filename)
 
-MAX_IMAGE_SIZE = 2 * 1024 * 1024  # 2MB in bytes
+MAX_IMAGE_SIZE = 10 * 1024 * 1024  # 2MB in bytes
 
 # Validate the size of uploaded images
 def validate_image_size(value):

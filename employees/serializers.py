@@ -4,7 +4,11 @@ from branches.models import *
 from branches.serializers import *
 from datetime import date
 from django.utils import timezone
-
+import face_recognition
+from .utils import *
+from PIL import Image
+import io
+import cv2
 class Job_TypeSerializer(serializers.ModelSerializer):
     class Meta:
         model=Job_Type
@@ -25,6 +29,9 @@ class EmployeeSerializer(serializers.ModelSerializer):
             },
             "branch_name" :{
                 "read_only" : True
+            },
+            "image" :{
+                "required" : True
             }
         }
     
@@ -42,6 +49,24 @@ class EmployeeSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         validated_data =  super().validate(attrs)
         request= self.context['request']
+        image = validated_data.get('image', None)
+        if image:
+            # قراءة الصورة باستخدام PIL
+            try:
+                img = Image.open(image)
+                img = img.convert('RGB')
+                # تحويل الصورة إلى numpy array
+                img_array = face_recognition.load_image_file(image)
+                # اكتشاف الوجوه في الصورة
+                face_locations = face_recognition.face_locations(img_array)
+                if len(face_locations) == 0:
+                    raise serializers.ValidationError({
+                        "image": "No face detected in the uploaded image."
+                    })
+            except Exception as e:
+                raise serializers.ValidationError({
+                    "image": "No face detected in the uploaded image."
+                })
         if request.method == 'PUT':
             if self.instance.job_type.job_type == "Manager":
                 branches = Branch.objects.all()
@@ -65,7 +90,18 @@ class EmployeeSerializer(serializers.ModelSerializer):
                 })
         return validated_data
  
-
+    def create(self, validated_data):
+        instance = super().create(validated_data)
+        image_data = None
+        image_rgb = None
+        if instance.image and instance.image.path:
+            image_bgr = cv2.imread(instance.image.path)
+            image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
+        if len(image_rgb) > 0 :
+            accept_register_new_user(instance.id , image_rgb , 'mediafiles/pickle/')
+            print(image_rgb)
+        return instance
+    
 class WorkDaySerializer(serializers.ModelSerializer):
     day_name=serializers.CharField(source='get_day_display',read_only=True)
     class Meta:
