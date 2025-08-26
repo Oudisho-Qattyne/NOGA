@@ -597,8 +597,9 @@ class PurchaseSerializer(serializers.ModelSerializer):
             insatnce = purchased_product_serialized_data.save()
             purchase.subtotal_price += insatnce.selling_price * insatnce.quantity
             purchase.total_price += insatnce.total_price
-        for purchased_offer in purchased_offers:
-            purchase.purchased_offers.add(purchased_offer)
+        if purchased_offers is not None:
+            for purchased_offer in purchased_offers:
+                purchase.purchased_offers.add(purchased_offer)
         return purchase
     def to_representation(self, instance):
         self.fields['purchased_offers'] = OfferSerializer(many=True, read_only=True)   
