@@ -53,25 +53,25 @@ class Discount_Category_Option(models.Model):
     option = models.ForeignKey(Option , on_delete=models.PROTECT)
 
 
-class Offer(models.Model):
-    start_date = models.DateField()
-    end_date = models.DateField()
-    created_at = models.DateTimeField(auto_now_add=True)
-    price = models.FloatField()
-    @property
-    def offer_products(self):
-        return self.offer_product_set.all()
+# class Offer(models.Model):
+#     start_date = models.DateField()
+#     end_date = models.DateField()
+#     created_at = models.DateTimeField(auto_now_add=True)
+#     price = models.FloatField()
+#     @property
+#     def offer_products(self):
+#         return self.offer_product_set.all()
     
-class Offer_Product(models.Model):
-    offer = models.ForeignKey(Offer , on_delete=models.PROTECT)
-    product = models.ForeignKey(Product , on_delete = models.PROTECT)
-    has_options = models.BooleanField()
-    options = models.ManyToManyField(Option , through="Offer_Product_Option")
-    quantity = models.PositiveBigIntegerField()
+# class Offer_Product(models.Model):
+#     offer = models.ForeignKey(Offer , on_delete=models.PROTECT)
+#     product = models.ForeignKey(Product , on_delete = models.PROTECT)
+#     has_options = models.BooleanField()
+#     options = models.ManyToManyField(Option , through="Offer_Product_Option")
+#     quantity = models.PositiveBigIntegerField()
 
-class Offer_Product_Option(models.Model):
-    offer_product = models.ForeignKey(Offer_Product , on_delete=models.PROTECT)
-    option = models.ForeignKey(Option , on_delete=models.PROTECT)
+# class Offer_Product_Option(models.Model):
+#     offer_product = models.ForeignKey(Offer_Product , on_delete=models.PROTECT)
+#     option = models.ForeignKey(Option , on_delete=models.PROTECT)
 
 
 class Coupon(models.Model):
@@ -103,10 +103,10 @@ class Purchase(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     subtotal_price = models.FloatField(default=0)
     total_price = models.FloatField(default=0)
-    has_coupons = models.BooleanField(default=False)
+    has_coupon = models.BooleanField(default=False)
     coupon = models.ForeignKey(Coupon , on_delete = models.PROTECT , null=True)
-    has_offers = models.BooleanField(default=False)
-    purchased_offers = models.ManyToManyField(Offer)
+    # has_offers = models.BooleanField(default=False)
+    # purchased_offers = models.ManyToManyField(Offer)
     @property
     def purchased_products(self):
             return self.purchased_products_set.all()
@@ -119,6 +119,6 @@ class Purchased_Products(models.Model):
     total_price = models.FloatField()
     has_discount = models.BooleanField(default=False)
     discount = models.ForeignKey(Discount , on_delete=models.PROTECT , null=True)
-    in_pack = models.BooleanField(default=False)
-    offer = models.ForeignKey(Offer , on_delete=models.PROTECT , null=True)
+    # in_pack = models.BooleanField(default=False)
+    # offer = models.ForeignKey(Offer , on_delete=models.PROTECT , null=True)
     quantity = models.PositiveIntegerField()

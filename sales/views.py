@@ -4,6 +4,7 @@ from rest_framework import generics
 from .models import *
 from .serializers import *
 from django.db.models.deletion import ProtectedError
+from rest_framework.decorators import api_view , permission_classes
 
 
 # Create your views here.
@@ -66,27 +67,27 @@ class DiscountAPIView(generics.DestroyAPIView, generics.UpdateAPIView):
             return Response({"message": "Discount can't be deleted"}, status=status.HTTP_400_BAD_REQUEST)
         
 
-class OffersAPIView(generics.ListAPIView , generics.CreateAPIView):
-    queryset = Offer.objects.all()
-    serializer_class = OfferSerializer
+# class OffersAPIView(generics.ListAPIView , generics.CreateAPIView):
+#     queryset = Offer.objects.all()
+#     serializer_class = OfferSerializer
 
 
-class OfferAPIView(generics.DestroyAPIView, generics.UpdateAPIView):
-    queryset = Offer.objects.all()
-    serializer_class = OfferSerializer
-    def delete(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            products = Offer_Product.objects.filter(offer=instance)
-            for product in products:
-                if product.has_options:
-                    Offer_Product_Option.objects.filter(offer_product=product).delete()
-                product.delete()
+# class OfferAPIView(generics.DestroyAPIView, generics.UpdateAPIView):
+#     queryset = Offer.objects.all()
+#     serializer_class = OfferSerializer
+#     def delete(self, request, *args, **kwargs):
+#         try:
+#             instance = self.get_object()
+#             products = Offer_Product.objects.filter(offer=instance)
+#             for product in products:
+#                 if product.has_options:
+#                     Offer_Product_Option.objects.filter(offer_product=product).delete()
+#                 product.delete()
             
-            super().delete(request, *args, **kwargs)
-            return Response({"message": "Offer deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
-        except ProtectedError:
-            return Response({"message": "Offer can't be deleted"}, status=status.HTTP_400_BAD_REQUEST)
+#             super().delete(request, *args, **kwargs)
+#             return Response({"message": "Offer deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+#         except ProtectedError:
+#             return Response({"message": "Offer can't be deleted"}, status=status.HTTP_400_BAD_REQUEST)
         
 class CouponsAPIView(generics.CreateAPIView , generics.ListAPIView):
     queryset = Coupon.objects.all()
@@ -127,3 +128,76 @@ class CustomersAPIVIew(generics.CreateAPIView , generics.ListAPIView):
 class CustomerAPIVIew(generics.UpdateAPIView , generics.DestroyAPIView):
     queryset = Customer.objects.all()
     serializer_class = CustomerSerializer
+
+@api_view(['POST'])
+def ProcessPurchase(request , pk):
+    try:
+        purchase_instance = Purchase.objects.get(id=pk)
+        if purchase_instance.status != "pending":
+            return Response({"message" : "Purchase may have been processed."} , status=status.HTTP_404_NOT_FOUND)
+        coupon_code = request.data.get('coupon' ,None)
+        if coupon_code:
+            try:
+                coupon = Coupon.objects.get(code=coupon_code)
+            except Coupon.DoesNotExist:
+                return Response({"message" : "Coupon not found."} , status=status.HTTP_404_NOT_FOUND)
+
+            if is_coupon_valid(coupon , purchase_instance):
+                purchase_instance.coupon = coupon
+                purchase_instance.has_coupon = True
+                if coupon.discount_type == 'fixed':
+                    purchase_instance.total_price = purchase_instance.subtotal_price - coupon.amount
+                elif coupon.discount_type == 'percentage':
+                    purchase_instance.total_price = purchase_instance.subtotal_price - purchase_instance.subtotal_price * coupon.amount
+        purchase_instance.status = "processing"
+        purchase_instance.save()  # حفظ التغييرات
+
+        # استدعاء السيريالايزر المناسب، هنا لنفترض أنه PurchaseSerializer
+        serializer = PurchaseSerializer(purchase_instance)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    except Purchase.DoesNotExist:
+        return Response({"message" : "Purchase not found."} , status=status.HTTP_404_NOT_FOUND)
+    
+
+@api_view(['POST'])
+def CompletePurchase(request , pk):
+    try:
+        purchase_instance = Purchase.objects.get(id=pk)
+        if purchase_instance.status != "processing":
+            return Response({"message" : "Purchase may have been completed."} , status=status.HTTP_400_BAD_REQUEST)
+        purchase_instance.status = "completed"
+        purchase_instance.save()  # حفظ التغييرات
+
+        # استدعاء السيريالايزر المناسب، هنا لنفترض أنه PurchaseSerializer
+        serializer = PurchaseSerializer(purchase_instance)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    except Purchase.DoesNotExist:
+        return Response({"message" : "Purchase not found."} , status=status.HTTP_404_NOT_FOUND)
+    
+
+@api_view(['POST'])
+def CancelPurchase(request , pk):
+    try:
+        purchase_instance = Purchase.objects.get(id=pk)
+        if purchase_instance.status == "completed":
+            return Response({"message" : "Purchase already completed."} , status=status.HTTP_400_BAD_REQUEST)
+        if purchase_instance.status == "cancelled":
+            return Response({"message" : "Purchase already cancelled."} , status=status.HTTP_400_BAD_REQUEST)
+        purchase_instance.status = "cancelled"
+        purchase_instance.save()  # حفظ التغييرات
+        products = Purchased_Products.objects.filter(purchase=purchase_instance)
+        for product in products:
+            branch = purchase_instance.branch          
+            branch_product = Branch_Products.objects.filter(product=product.product , branch=branch).first()
+            branch_product.quantity += product.quantity
+            branch_product.save()
+
+        # استدعاء السيريالايزر المناسب، هنا لنفترض أنه PurchaseSerializer
+        serializer = PurchaseSerializer(purchase_instance)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    except Purchase.DoesNotExist:
+        return Response({"message" : "Purchase not found."} , status=status.HTTP_404_NOT_FOUND)
+    
