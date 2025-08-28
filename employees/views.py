@@ -65,134 +65,134 @@ class WorkScheduleAPIView(viewsets.ModelViewSet):
             workSchedule.save()
         return super().destroy(request, *args, **kwargs)
 
-class AttendanceAPIView(viewsets.ModelViewSet):
-    queryset=Attendance.objects.all()
-    serializer_class = AttendanceSerializer
-    @action(detail=False, methods=['post'])
-    def check_in(self, request):
-        image_file = request.FILES.get('image')
-        employee_id = None
-        if image_file:
-            image_bytes = image_file.read()
-            image = Image.open(io.BytesIO(image_bytes))
-            if image.mode != 'RGB':
-                image = image.convert('RGB')
-            image_np = np.array(image)
-            result = recognize(image_np , "mediafiles/pickle")
-            if not result.isdigit():
-                return Response({'error': result}, status=status.HTTP_400_BAD_REQUEST)
-            employee_id = result
-        else:
-            employee_id = request.data.get('employee')
-            if not employee_id:
-                return Response({'employee':'Employee ID is required'},status=status.HTTP_400_BAD_REQUEST)
-        employee = None        
-        try:
-            employee = Employee.objects.get(id=employee_id)
-        except Employee.DoesNotExist:
-            return Response({'error':'Employee not found'},status=status.HTTP_404_NOT_FOUND)
+# class AttendanceAPIView(viewsets.ModelViewSet):
+#     queryset=Attendance.objects.all()
+#     serializer_class = AttendanceSerializer
+#     @action(detail=False, methods=['post'])
+#     def check_in(self, request):
+#         image_file = request.FILES.get('image')
+#         employee_id = None
+#         if image_file:
+#             image_bytes = image_file.read()
+#             image = Image.open(io.BytesIO(image_bytes))
+#             if image.mode != 'RGB':
+#                 image = image.convert('RGB')
+#             image_np = np.array(image)
+#             result = recognize(image_np , "mediafiles/pickle")
+#             if not result.isdigit():
+#                 return Response({'error': result}, status=status.HTTP_400_BAD_REQUEST)
+#             employee_id = result
+#         else:
+#             employee_id = request.data.get('employee')
+#             if not employee_id:
+#                 return Response({'employee':'Employee ID is required'},status=status.HTTP_400_BAD_REQUEST)
+#         employee = None        
+#         try:
+#             employee = Employee.objects.get(id=employee_id)
+#         except Employee.DoesNotExist:
+#             return Response({'error':'Employee not found'},status=status.HTTP_404_NOT_FOUND)
         
-        now=timezone.now()
-        today_date=now.date()
-        today=now.weekday()
-        schedule=WorkSchedule.objects.filter(is_active=True).first()
-        if not schedule:
-            return Response({'error':'no active schedule found'},status=status.HTTP_404_NOT_FOUND)
-        try:
-            work_day=WorkDay.objects.get(schedule=schedule,day=today)
-        except WorkDay.DoesNotExist:
-            return Response({'error':'No work schedule for today'},status=status.HTTP_404_NOT_FOUND)
-        scheduled_start=datetime.combine(now,work_day.start_time).replace(tzinfo=timezone.get_current_timezone())
-        delay_minutes=(now-scheduled_start).total_seconds()/60
-        # print("delay_minutes" , delay_minutes , now)
-        status_text='on_time' if delay_minutes<=30 else 'late'
-        # print(delay_minutes<=30 , status_text)
-        attendance, created = Attendance.objects.get_or_create(
-            employee=employee,
-            date=today_date,
-            defaults={
-                'status': 'present', 
-                'check_in_status':status_text
-                }
-        )
-        active_logs=attendance.logs.filter(check_out__isnull=True)
-        if active_logs.exists():
-            log=active_logs.first()
-            log_serializer=AttendanceLogSerializer(log)
-            return Response({'error':'there is an active check in',
-                                'active_log_id':log.id,
-                                'check_in_time':log_serializer.data})
+#         now=timezone.now()
+#         today_date=now.date()
+#         today=now.weekday()
+#         schedule=WorkSchedule.objects.filter(is_active=True).first()
+#         if not schedule:
+#             return Response({'error':'no active schedule found'},status=status.HTTP_404_NOT_FOUND)
+#         try:
+#             work_day=WorkDay.objects.get(schedule=schedule,day=today)
+#         except WorkDay.DoesNotExist:
+#             return Response({'error':'No work schedule for today'},status=status.HTTP_404_NOT_FOUND)
+#         scheduled_start=datetime.combine(now,work_day.start_time).replace(tzinfo=timezone.get_current_timezone())
+#         delay_minutes=(now-scheduled_start).total_seconds()/60
+#         # print("delay_minutes" , delay_minutes , now)
+#         status_text='on_time' if delay_minutes<=30 else 'late'
+#         # print(delay_minutes<=30 , status_text)
+#         attendance, created = Attendance.objects.get_or_create(
+#             employee=employee,
+#             date=today_date,
+#             defaults={
+#                 'status': 'present', 
+#                 'check_in_status':status_text
+#                 }
+#         )
+#         active_logs=attendance.logs.filter(check_out__isnull=True)
+#         if active_logs.exists():
+#             log=active_logs.first()
+#             log_serializer=AttendanceLogSerializer(log)
+#             return Response({'error':'there is an active check in',
+#                                 'active_log_id':log.id,
+#                                 'check_in_time':log_serializer.data})
 
-        log=AttendanceLog.objects.create(
-            attendance=attendance,
-            check_in=now,
-        )
-        log_serializer=AttendanceLogSerializer(log)
+#         log=AttendanceLog.objects.create(
+#             attendance=attendance,
+#             check_in=now,
+#         )
+#         log_serializer=AttendanceLogSerializer(log)
         
-        return Response({'status':'checked in successfully',
-                            'log':log_serializer.data,
-                            'delay_minutes':round(delay_minutes,2)},status=status.HTTP_201_CREATED)
+#         return Response({'status':'checked in successfully',
+#                             'log':log_serializer.data,
+#                             'delay_minutes':round(delay_minutes,2)},status=status.HTTP_201_CREATED)
         
-    @action(detail=False,methods=['post'])
-    def check_out(self,request):
-        image_file = request.FILES.get('image')
-        employee_id = None
-        if image_file:
-            image_bytes = image_file.read()
-            image = Image.open(io.BytesIO(image_bytes))
-            if image.mode != 'RGB':
-                image = image.convert('RGB')
-            image_np = np.array(image)
-            result = recognize(image_np , "mediafiles/pickle")
-            if not result.isdigit():
-                return Response({'error': result}, status=status.HTTP_400_BAD_REQUEST)
-            employee_id = result
-        else:
-            employee_id = request.data.get('employee')
-            if not employee_id:
-                return Response({'employee':'Employee ID is required'},status=status.HTTP_404_NOT_FOUND)
-        employee = None        
-        try:
-            employee = Employee.objects.get(id=employee_id)
-        except Employee.DoesNotExist:
-            return Response({'error':'Employee not found'},status=400)
+#     @action(detail=False,methods=['post'])
+#     def check_out(self,request):
+#         image_file = request.FILES.get('image')
+#         employee_id = None
+#         if image_file:
+#             image_bytes = image_file.read()
+#             image = Image.open(io.BytesIO(image_bytes))
+#             if image.mode != 'RGB':
+#                 image = image.convert('RGB')
+#             image_np = np.array(image)
+#             result = recognize(image_np , "mediafiles/pickle")
+#             if not result.isdigit():
+#                 return Response({'error': result}, status=status.HTTP_400_BAD_REQUEST)
+#             employee_id = result
+#         else:
+#             employee_id = request.data.get('employee')
+#             if not employee_id:
+#                 return Response({'employee':'Employee ID is required'},status=status.HTTP_404_NOT_FOUND)
+#         employee = None        
+#         try:
+#             employee = Employee.objects.get(id=employee_id)
+#         except Employee.DoesNotExist:
+#             return Response({'error':'Employee not found'},status=400)
         
-        try:
-            attendance = Attendance.objects.get(
-                employee=employee,
-                date=timezone.now().date()
-            )
-        except (Attendance.DoesNotExist):
-                return Response({'error':'No attendance record found for today'},
-                                 status=status.HTTP_404_NOT_FOUND)
+#         try:
+#             attendance = Attendance.objects.get(
+#                 employee=employee,
+#                 date=timezone.now().date()
+#             )
+#         except (Attendance.DoesNotExist):
+#                 return Response({'error':'No attendance record found for today'},
+#                                  status=status.HTTP_404_NOT_FOUND)
             
-        active_log=attendance.logs.filter(check_out__isnull=True).first()
-        if not active_log:
-            return Response({'error': 'No active check in log found. Maybe already checked out?'},status=status.HTTP_400_BAD_REQUEST) 
-        now=timezone.now()
-        today_date=now.date()
-        today=now.weekday()
-        schedule=WorkSchedule.objects.filter(is_active=True).first()
-        if not schedule:
-            return Response({'error':'no active schedule found'},status=status.HTTP_404_NOT_FOUND)
-        try:
-            work_day=WorkDay.objects.get(schedule=schedule,day=today)
-        except WorkDay.DoesNotExist:
-            return Response({'error':'No work schedule for today'},status=status.HTTP_404_NOT_FOUND)
-        scheduled_end=datetime.combine(now,work_day.end_time).replace(tzinfo=timezone.get_current_timezone())
-        delay_minutes=(now-scheduled_end).total_seconds()/60
-        status_text='on_time' if scheduled_end<=now else 'left_early'
-        if attendance.logs.count() > 1:
-            status_text='left_early'
+#         active_log=attendance.logs.filter(check_out__isnull=True).first()
+#         if not active_log:
+#             return Response({'error': 'No active check in log found. Maybe already checked out?'},status=status.HTTP_400_BAD_REQUEST) 
+#         now=timezone.now()
+#         today_date=now.date()
+#         today=now.weekday()
+#         schedule=WorkSchedule.objects.filter(is_active=True).first()
+#         if not schedule:
+#             return Response({'error':'no active schedule found'},status=status.HTTP_404_NOT_FOUND)
+#         try:
+#             work_day=WorkDay.objects.get(schedule=schedule,day=today)
+#         except WorkDay.DoesNotExist:
+#             return Response({'error':'No work schedule for today'},status=status.HTTP_404_NOT_FOUND)
+#         scheduled_end=datetime.combine(now,work_day.end_time).replace(tzinfo=timezone.get_current_timezone())
+#         delay_minutes=(now-scheduled_end).total_seconds()/60
+#         status_text='on_time' if scheduled_end<=now else 'left_early'
+#         if attendance.logs.count() > 1:
+#             status_text='left_early'
 
-        attendance.check_out_status = status_text
+#         attendance.check_out_status = status_text
 
-        active_log.check_out=now
-        active_log.save()
-        attendance.save()
-        log_serializer=AttendanceLogSerializer(active_log)
-        return Response({'status':'Check out successfully','log':log_serializer.data},
-                        status=status.HTTP_200_OK)
+#         active_log.check_out=now
+#         active_log.save()
+#         attendance.save()
+#         log_serializer=AttendanceLogSerializer(active_log)
+#         return Response({'status':'Check out successfully','log':log_serializer.data},
+#                         status=status.HTTP_200_OK)
 
 
 class VecationsAPIView(generics.ListCreateAPIView):

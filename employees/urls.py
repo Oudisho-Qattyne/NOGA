@@ -23,9 +23,9 @@ urlpatterns = [
     path('work_schedules',work_list),
     path('work_schedule/<int:pk>',work_detail),
     
-    path('attendance',AttendanceAPIView.as_view({'get': 'list'})),
-    path('attendance/check_in',AttendanceAPIView.as_view({'post':'check_in'}),name='check_in'),
-    path('attendance/check_out',AttendanceAPIView.as_view({'post':'check_out'}),name='check_out'),
+    # path('attendance',AttendanceAPIView.as_view({'get': 'list'})),
+    # path('attendance/check_in',AttendanceAPIView.as_view({'post':'check_in'}),name='check_in'),
+    # path('attendance/check_out',AttendanceAPIView.as_view({'post':'check_out'}),name='check_out'),
 
     path('vecations',VecationsAPIView.as_view()),
     path('vecations/<int:pk>',VecationAPIView.as_view()),

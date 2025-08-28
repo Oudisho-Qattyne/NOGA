@@ -29,6 +29,7 @@ urlpatterns = [
     path('requests',TransportRequestsAPIView.as_view()),
     path('requests/<int:pk>',TransportRequestAPIView.as_view()),
     path('requests/<int:pk>/process',ProcessTransportRequest),
-    path('requests/<int:pk>/reject-all',RejectTransportRequest)
+    path('requests/<int:pk>/reject-all',RejectTransportRequest),
 
+    path('item-item-recommendation/<int:item_id>' , item_item_recommendations)
 ]

@@ -2108,230 +2108,6 @@
         }
     },
     {
-        "model": "contenttypes.contenttype",
-        "pk": 26,
-        "fields": {
-            "app_label": "branches",
-            "model": "branch"
-        }
-    },
-    {
-        "model": "contenttypes.contenttype",
-        "pk": 27,
-        "fields": {
-            "app_label": "branches",
-            "model": "branch_products"
-        }
-    },
-    {
-        "model": "contenttypes.contenttype",
-        "pk": 28,
-        "fields": {
-            "app_label": "branches",
-            "model": "city"
-        }
-    },
-    {
-        "model": "contenttypes.contenttype",
-        "pk": 29,
-        "fields": {
-            "app_label": "employees",
-            "model": "attendance"
-        }
-    },
-    {
-        "model": "contenttypes.contenttype",
-        "pk": 30,
-        "fields": {
-            "app_label": "employees",
-            "model": "job_type"
-        }
-    },
-    {
-        "model": "contenttypes.contenttype",
-        "pk": 31,
-        "fields": {
-            "app_label": "employees",
-            "model": "workschedule"
-        }
-    },
-    {
-        "model": "contenttypes.contenttype",
-        "pk": 32,
-        "fields": {
-            "app_label": "employees",
-            "model": "attendancelog"
-        }
-    },
-    {
-        "model": "contenttypes.contenttype",
-        "pk": 33,
-        "fields": {
-            "app_label": "employees",
-            "model": "employee"
-        }
-    },
-    {
-        "model": "contenttypes.contenttype",
-        "pk": 34,
-        "fields": {
-            "app_label": "employees",
-            "model": "vecation"
-        }
-    },
-    {
-        "model": "contenttypes.contenttype",
-        "pk": 35,
-        "fields": {
-            "app_label": "employees",
-            "model": "salary"
-        }
-    },
-    {
-        "model": "contenttypes.contenttype",
-        "pk": 36,
-        "fields": {
-            "app_label": "employees",
-            "model": "workday"
-        }
-    },
-    {
-        "model": "contenttypes.contenttype",
-        "pk": 37,
-        "fields": {
-            "app_label": "sales",
-            "model": "coupon"
-        }
-    },
-    {
-        "model": "contenttypes.contenttype",
-        "pk": 38,
-        "fields": {
-            "app_label": "sales",
-            "model": "customer"
-        }
-    },
-    {
-        "model": "contenttypes.contenttype",
-        "pk": 39,
-        "fields": {
-            "app_label": "sales",
-            "model": "discount"
-        }
-    },
-    {
-        "model": "contenttypes.contenttype",
-        "pk": 40,
-        "fields": {
-            "app_label": "sales",
-            "model": "offer"
-        }
-    },
-    {
-        "model": "contenttypes.contenttype",
-        "pk": 41,
-        "fields": {
-            "app_label": "sales",
-            "model": "discount_category"
-        }
-    },
-    {
-        "model": "contenttypes.contenttype",
-        "pk": 42,
-        "fields": {
-            "app_label": "sales",
-            "model": "discount_category_option"
-        }
-    },
-    {
-        "model": "contenttypes.contenttype",
-        "pk": 43,
-        "fields": {
-            "app_label": "sales",
-            "model": "discount_product"
-        }
-    },
-    {
-        "model": "contenttypes.contenttype",
-        "pk": 44,
-        "fields": {
-            "app_label": "sales",
-            "model": "discount_product_option"
-        }
-    },
-    {
-        "model": "contenttypes.contenttype",
-        "pk": 45,
-        "fields": {
-            "app_label": "sales",
-            "model": "offer_product"
-        }
-    },
-    {
-        "model": "contenttypes.contenttype",
-        "pk": 46,
-        "fields": {
-            "app_label": "sales",
-            "model": "offer_product_option"
-        }
-    },
-    {
-        "model": "contenttypes.contenttype",
-        "pk": 47,
-        "fields": {
-            "app_label": "sales",
-            "model": "purchase"
-        }
-    },
-    {
-        "model": "contenttypes.contenttype",
-        "pk": 48,
-        "fields": {
-            "app_label": "sales",
-            "model": "purchased_products"
-        }
-    },
-    {
-        "model": "contenttypes.contenttype",
-        "pk": 49,
-        "fields": {
-            "app_label": "mobile",
-            "model": "client_profile"
-        }
-    },
-    {
-        "model": "contenttypes.contenttype",
-        "pk": 50,
-        "fields": {
-            "app_label": "mobile",
-            "model": "comment"
-        }
-    },
-    {
-        "model": "contenttypes.contenttype",
-        "pk": 51,
-        "fields": {
-            "app_label": "mobile",
-            "model": "like"
-        }
-    },
-    {
-        "model": "contenttypes.contenttype",
-        "pk": 52,
-        "fields": {
-            "app_label": "mobile",
-            "model": "review"
-        }
-    },
-    {
-        "model": "contenttypes.contenttype",
-        "pk": 53,
-        "fields": {
-            "app_label": "mobile",
-            "model": "save"
-        }
-    },
-    {
         "model": "users.user",
         "pk": 1,
         "fields": {
@@ -3058,6 +2834,1377 @@
             "comment": "thats good",
             "created_at": "2025-07-21T19:29:06.853Z",
             "updated_at": "2025-07-21T19:29:06.853Z"
+        }
+    },
+    {
+        "model": "products.unit",
+        "pk": 4,
+        "fields": {
+            "unit": "inches"
+        }
+    },
+    {
+        "model": "products.unit",
+        "pk": 5,
+        "fields": {
+            "unit": "GHz"
+        }
+    },
+    {
+        "model": "products.attribute",
+        "pk": 5,
+        "fields": {
+            "attribute": "screen_size",
+            "attribute_type": "number",
+            "is_multivalue": false,
+            "is_categorical": false,
+            "has_unit": true
+        }
+    },
+    {
+        "model": "products.attribute",
+        "pk": 6,
+        "fields": {
+            "attribute": "processor_speed",
+            "attribute_type": "number",
+            "is_multivalue": false,
+            "is_categorical": false,
+            "has_unit": true
+        }
+    },
+    {
+        "model": "products.attribute",
+        "pk": 7,
+        "fields": {
+            "attribute": "ram",
+            "attribute_type": "number",
+            "is_multivalue": false,
+            "is_categorical": false,
+            "has_unit": true
+        }
+    },
+    {
+        "model": "products.attribute_unit",
+        "pk": 4,
+        "fields": {
+            "unit": 4,
+            "attribute": 5
+        }
+    },
+    {
+        "model": "products.attribute_unit",
+        "pk": 5,
+        "fields": {
+            "unit": 5,
+            "attribute": 6
+        }
+    },
+    {
+        "model": "products.attribute_unit",
+        "pk": 6,
+        "fields": {
+            "unit": 1,
+            "attribute": 7
+        }
+    },
+    {
+        "model": "products.option",
+        "pk": 9,
+        "fields": {
+            "option": "6.1",
+            "attribute": 5
+        }
+    },
+    {
+        "model": "products.option",
+        "pk": 10,
+        "fields": {
+            "option": "6.7",
+            "attribute": 5
+        }
+    },
+    {
+        "model": "products.option",
+        "pk": 11,
+        "fields": {
+            "option": "2.5",
+            "attribute": 6
+        }
+    },
+    {
+        "model": "products.option",
+        "pk": 12,
+        "fields": {
+            "option": "3.2",
+            "attribute": 6
+        }
+    },
+    {
+        "model": "products.option",
+        "pk": 13,
+        "fields": {
+            "option": "8",
+            "attribute": 7
+        }
+    },
+    {
+        "model": "products.option",
+        "pk": 14,
+        "fields": {
+            "option": "12",
+            "attribute": 7
+        }
+    },
+    {
+        "model": "products.option_unit",
+        "pk": 9,
+        "fields": {
+            "option": 9,
+            "unit": 4
+        }
+    },
+    {
+        "model": "products.option_unit",
+        "pk": 10,
+        "fields": {
+            "option": 10,
+            "unit": 4
+        }
+    },
+    {
+        "model": "products.option_unit",
+        "pk": 11,
+        "fields": {
+            "option": 11,
+            "unit": 5
+        }
+    },
+    {
+        "model": "products.option_unit",
+        "pk": 12,
+        "fields": {
+            "option": 12,
+            "unit": 5
+        }
+    },
+    {
+        "model": "products.option_unit",
+        "pk": 13,
+        "fields": {
+            "option": 13,
+            "unit": 1
+        }
+    },
+    {
+        "model": "products.option_unit",
+        "pk": 14,
+        "fields": {
+            "option": 14,
+            "unit": 1
+        }
+    },
+    {
+        "model": "products.category",
+        "pk": 2,
+        "fields": {
+            "category": "laptop",
+            "parent_category": null
+        }
+    },
+    {
+        "model": "products.category_attribute",
+        "pk": 3,
+        "fields": {
+            "category": 2,
+            "attribute": 5
+        }
+    },
+    {
+        "model": "products.category_attribute",
+        "pk": 4,
+        "fields": {
+            "category": 2,
+            "attribute": 6
+        }
+    },
+    {
+        "model": "products.category_attribute",
+        "pk": 5,
+        "fields": {
+            "category": 2,
+            "attribute": 7
+        }
+    },
+    {
+        "model": "products.product",
+        "pk": 3,
+        "fields": {
+            "product_name": "dell_xps",
+            "category": 2,
+            "qr_code": "http://127.0.0.1:8000/media/productqr/laptop-dell_xps-3.png",
+            "qr_codes_download": "http://127.0.0.1:8000/media/productqr/laptop-dell_xps-3-download.jpg",
+            "linked_products": []
+        }
+    },
+    {
+        "model": "products.product",
+        "pk": 4,
+        "fields": {
+            "product_name": "macbook_pro",
+            "category": 2,
+            "qr_code": "http://127.0.0.1:8000/media/productqr/laptop-macbook_pro-4.png",
+            "qr_codes_download": "http://127.0.0.1:8000/media/productqr/laptop-macbook_pro-4-download.jpg",
+            "linked_products": []
+        }
+    },
+    {
+        "model": "products.variant",
+        "pk": 5,
+        "fields": {
+            "product": 3,
+            "quantity": 50,
+            "wholesale_price": 1200.0,
+            "selling_price": 1500.0,
+            "sku": "dell_xps-15inch-2.5GHz-8GB"
+        }
+    },
+    {
+        "model": "products.variant",
+        "pk": 6,
+        "fields": {
+            "product": 3,
+            "quantity": 30,
+            "wholesale_price": 1500.0,
+            "selling_price": 1800.0,
+            "sku": "dell_xps-15inch-3.2GHz-12GB"
+        }
+    },
+    {
+        "model": "products.variant",
+        "pk": 7,
+        "fields": {
+            "product": 4,
+            "quantity": 40,
+            "wholesale_price": 2000.0,
+            "selling_price": 2500.0,
+            "sku": "macbook_pro-13inch-2.5GHz-8GB"
+        }
+    },
+    {
+        "model": "products.variant",
+        "pk": 8,
+        "fields": {
+            "product": 4,
+            "quantity": 25,
+            "wholesale_price": 2500.0,
+            "selling_price": 3000.0,
+            "sku": "macbook_pro-13inch-3.2GHz-12GB"
+        }
+    },
+    {
+        "model": "products.variant_option",
+        "pk": 9,
+        "fields": {
+            "variant": 5,
+            "option": 9
+        }
+    },
+    {
+        "model": "products.variant_option",
+        "pk": 10,
+        "fields": {
+            "variant": 5,
+            "option": 11
+        }
+    },
+    {
+        "model": "products.variant_option",
+        "pk": 11,
+        "fields": {
+            "variant": 5,
+            "option": 13
+        }
+    },
+    {
+        "model": "products.variant_option",
+        "pk": 12,
+        "fields": {
+            "variant": 6,
+            "option": 9
+        }
+    },
+    {
+        "model": "products.variant_option",
+        "pk": 13,
+        "fields": {
+            "variant": 6,
+            "option": 12
+        }
+    },
+    {
+        "model": "products.variant_option",
+        "pk": 14,
+        "fields": {
+            "variant": 6,
+            "option": 14
+        }
+    },
+    {
+        "model": "products.variant_option",
+        "pk": 15,
+        "fields": {
+            "variant": 7,
+            "option": 10
+        }
+    },
+    {
+        "model": "products.variant_option",
+        "pk": 16,
+        "fields": {
+            "variant": 7,
+            "option": 11
+        }
+    },
+    {
+        "model": "products.variant_option",
+        "pk": 17,
+        "fields": {
+            "variant": 7,
+            "option": 13
+        }
+    },
+    {
+        "model": "products.variant_option",
+        "pk": 18,
+        "fields": {
+            "variant": 8,
+            "option": 10
+        }
+    },
+    {
+        "model": "products.variant_option",
+        "pk": 19,
+        "fields": {
+            "variant": 8,
+            "option": 12
+        }
+    },
+    {
+        "model": "products.variant_option",
+        "pk": 20,
+        "fields": {
+            "variant": 8,
+            "option": 14
+        }
+    },
+    {
+        "model": "products.transportation",
+        "pk": 3,
+        "fields": {
+            "transportation_status": "confirmed",
+            "source": null,
+            "destination": 1,
+            "code": "d8e7f6a5",
+            "created_at": "2025-07-22T10:00:00.000Z",
+            "transported_at": "2025-07-22T10:30:00.000Z",
+            "received_at": "2025-07-22T11:00:00.000Z"
+        }
+    },
+    {
+        "model": "products.transported_products",
+        "pk": 3,
+        "fields": {
+            "transportation": 3,
+            "product": 3,
+            "quantity": 20
+        }
+    },
+    {
+        "model": "products.transported_products",
+        "pk": 4,
+        "fields": {
+            "transportation": 3,
+            "product": 4,
+            "quantity": 15
+        }
+    },
+    {
+        "model": "products.received_products",
+        "pk": 3,
+        "fields": {
+            "transportation": 3,
+            "product": 3,
+            "quantity": 20
+        }
+    },
+    {
+        "model": "products.received_products",
+        "pk": 4,
+        "fields": {
+            "transportation": 3,
+            "product": 4,
+            "quantity": 15
+        }
+    },
+    {
+        "model": "branches.branch_products",
+        "pk": 3,
+        "fields": {
+            "branch": 1,
+            "product": 3,
+            "quantity": 20
+        }
+    },
+    {
+        "model": "branches.branch_products",
+        "pk": 4,
+        "fields": {
+            "branch": 1,
+            "product": 4,
+            "quantity": 15
+        }
+    },
+    {
+        "model": "mobile.like",
+        "pk": 2,
+        "fields": {
+            "user_id": 2,
+            "product_id": 3
+        }
+    },
+    {
+        "model": "mobile.like",
+        "pk": 3,
+        "fields": {
+            "user_id": 2,
+            "product_id": 4
+        }
+    },
+    {
+        "model": "mobile.save",
+        "pk": 2,
+        "fields": {
+            "user": 2,
+            "product": 3,
+            "saves_at": "2025-07-22T12:00:00.000Z"
+        }
+    },
+    {
+        "model": "mobile.save",
+        "pk": 3,
+        "fields": {
+            "user": 2,
+            "product": 4,
+            "saves_at": "2025-07-22T12:30:00.000Z"
+        }
+    },
+    {
+        "model": "mobile.review",
+        "pk": 2,
+        "fields": {
+            "user": 2,
+            "product": 3,
+            "rating": 4,
+            "comment": "Great laptop, fast performance",
+            "created_at": "2025-07-22T13:00:00.000Z",
+            "updated_at": "2025-07-22T13:00:00.000Z"
+        }
+    },
+    {
+        "model": "mobile.review",
+        "pk": 3,
+        "fields": {
+            "user": 2,
+            "product": 4,
+            "rating": 5,
+            "comment": "Excellent build quality and battery life",
+            "created_at": "2025-07-22T13:30:00.000Z",
+            "updated_at": "2025-07-22T13:30:00.000Z"
+        }
+    },
+    {
+        "model": "mobile.comment",
+        "pk": 3,
+        "fields": {
+            "user_id": 2,
+            "product_id": 3,
+            "comment_text": "How's the battery life?",
+            "replay_to": null,
+            "created_at": "2025-07-22T14:00:00.000Z",
+            "updated_at": "2025-07-22T14:00:00.000Z"
+        }
+    },
+    {
+        "model": "mobile.comment",
+        "pk": 4,
+        "fields": {
+            "user_id": 2,
+            "product_id": 4,
+            "comment_text": "Worth the price?",
+            "replay_to": null,
+            "created_at": "2025-07-22T14:30:00.000Z",
+            "updated_at": "2025-07-22T14:30:00.000Z"
+        }
+    },
+    {
+        "model": "products.unit",
+        "pk": 6,
+        "fields": {
+            "unit": "Mp"
+        }
+    },
+    {
+        "model": "products.unit",
+        "pk": 7,
+        "fields": {
+            "unit": "hours"
+        }
+    },
+    {
+        "model": "products.unit",
+        "pk": 8,
+        "fields": {
+            "unit": "W"
+        }
+    },
+    {
+        "model": "products.attribute",
+        "pk": 8,
+        "fields": {
+            "attribute": "camera_quality",
+            "attribute_type": "number",
+            "is_multivalue": false,
+            "is_categorical": false,
+            "has_unit": true
+        }
+    },
+    {
+        "model": "products.attribute",
+        "pk": 9,
+        "fields": {
+            "attribute": "battery_life",
+            "attribute_type": "number",
+            "is_multivalue": false,
+            "is_categorical": false,
+            "has_unit": true
+        }
+    },
+    {
+        "model": "products.attribute",
+        "pk": 10,
+        "fields": {
+            "attribute": "charging_speed",
+            "attribute_type": "number",
+            "is_multivalue": false,
+            "is_categorical": false,
+            "has_unit": true
+        }
+    },
+    {
+        "model": "products.attribute",
+        "pk": 11,
+        "fields": {
+            "attribute": "refresh_rate",
+            "attribute_type": "number",
+            "is_multivalue": false,
+            "is_categorical": false,
+            "has_unit": true
+        }
+    },
+    {
+        "model": "products.attribute",
+        "pk": 12,
+        "fields": {
+            "attribute": "storage_type",
+            "attribute_type": "text",
+            "is_multivalue": false,
+            "is_categorical": true,
+            "has_unit": false
+        }
+    },
+    {
+        "model": "products.attribute_unit",
+        "pk": 7,
+        "fields": {
+            "unit": 6,
+            "attribute": 8
+        }
+    },
+    {
+        "model": "products.attribute_unit",
+        "pk": 8,
+        "fields": {
+            "unit": 7,
+            "attribute": 9
+        }
+    },
+    {
+        "model": "products.attribute_unit",
+        "pk": 9,
+        "fields": {
+            "unit": 8,
+            "attribute": 10
+        }
+    },
+    {
+        "model": "products.attribute_unit",
+        "pk": 10,
+        "fields": {
+            "unit": 1,
+            "attribute": 11
+        }
+    },
+    {
+        "model": "products.option",
+        "pk": 15,
+        "fields": {
+            "option": "48",
+            "attribute": 8
+        }
+    },
+    {
+        "model": "products.option",
+        "pk": 16,
+        "fields": {
+            "option": "64",
+            "attribute": 8
+        }
+    },
+    {
+        "model": "products.option",
+        "pk": 17,
+        "fields": {
+            "option": "10",
+            "attribute": 9
+        }
+    },
+    {
+        "model": "products.option",
+        "pk": 18,
+        "fields": {
+            "option": "15",
+            "attribute": 9
+        }
+    },
+    {
+        "model": "products.option",
+        "pk": 19,
+        "fields": {
+            "option": "25",
+            "attribute": 10
+        }
+    },
+    {
+        "model": "products.option",
+        "pk": 20,
+        "fields": {
+            "option": "45",
+            "attribute": 10
+        }
+    },
+    {
+        "model": "products.option",
+        "pk": 21,
+        "fields": {
+            "option": "90",
+            "attribute": 11
+        }
+    },
+    {
+        "model": "products.option",
+        "pk": 22,
+        "fields": {
+            "option": "120",
+            "attribute": 11
+        }
+    },
+    {
+        "model": "products.option",
+        "pk": 23,
+        "fields": {
+            "option": "SSD",
+            "attribute": 12
+        }
+    },
+    {
+        "model": "products.option",
+        "pk": 24,
+        "fields": {
+            "option": "HDD",
+            "attribute": 12
+        }
+    },
+    {
+        "model": "products.option_unit",
+        "pk": 15,
+        "fields": {
+            "option": 15,
+            "unit": 6
+        }
+    },
+    {
+        "model": "products.option_unit",
+        "pk": 16,
+        "fields": {
+            "option": 16,
+            "unit": 6
+        }
+    },
+    {
+        "model": "products.option_unit",
+        "pk": 17,
+        "fields": {
+            "option": 17,
+            "unit": 7
+        }
+    },
+    {
+        "model": "products.option_unit",
+        "pk": 18,
+        "fields": {
+            "option": 18,
+            "unit": 7
+        }
+    },
+    {
+        "model": "products.option_unit",
+        "pk": 19,
+        "fields": {
+            "option": 19,
+            "unit": 8
+        }
+    },
+    {
+        "model": "products.option_unit",
+        "pk": 20,
+        "fields": {
+            "option": 20,
+            "unit": 8
+        }
+    },
+    {
+        "model": "products.option_unit",
+        "pk": 21,
+        "fields": {
+            "option": 21,
+            "unit": 1
+        }
+    },
+    {
+        "model": "products.option_unit",
+        "pk": 22,
+        "fields": {
+            "option": 22,
+            "unit": 1
+        }
+    },
+    {
+        "model": "products.category",
+        "pk": 3,
+        "fields": {
+            "category": "tablet",
+            "parent_category": null
+        }
+    },
+    {
+        "model": "products.category",
+        "pk": 4,
+        "fields": {
+            "category": "smartwatch",
+            "parent_category": null
+        }
+    },
+    {
+        "model": "products.category",
+        "pk": 5,
+        "fields": {
+            "category": "camera",
+            "parent_category": null
+        }
+    },
+    {
+        "model": "products.category_attribute",
+        "pk": 6,
+        "fields": {
+            "category": 3,
+            "attribute": 5
+        }
+    },
+    {
+        "model": "products.category_attribute",
+        "pk": 7,
+        "fields": {
+            "category": 3,
+            "attribute": 7
+        }
+    },
+    {
+        "model": "products.category_attribute",
+        "pk": 8,
+        "fields": {
+            "category": 3,
+            "attribute": 9
+        }
+    },
+    {
+        "model": "products.category_attribute",
+        "pk": 9,
+        "fields": {
+            "category": 4,
+            "attribute": 9
+        }
+    },
+    {
+        "model": "products.category_attribute",
+        "pk": 10,
+        "fields": {
+            "category": 4,
+            "attribute": 11
+        }
+    },
+    {
+        "model": "products.category_attribute",
+        "pk": 11,
+        "fields": {
+            "category": 5,
+            "attribute": 8
+        }
+    },
+    {
+        "model": "products.category_attribute",
+        "pk": 12,
+        "fields": {
+            "category": 5,
+            "attribute": 9
+        }
+    },
+    {
+        "model": "products.product",
+        "pk": 5,
+        "fields": {
+            "product_name": "ipad_air",
+            "category": 3,
+            "qr_code": "http://127.0.0.1:8000/media/productqr/tablet-ipad_air-5.png",
+            "qr_codes_download": "http://127.0.0.1:8000/media/productqr/tablet-ipad_air-5-download.jpg",
+            "linked_products": []
+        }
+    },
+    {
+        "model": "products.product",
+        "pk": 6,
+        "fields": {
+            "product_name": "samsung_tab",
+            "category": 3,
+            "qr_code": "http://127.0.0.1:8000/media/productqr/tablet-samsung_tab-6.png",
+            "qr_codes_download": "http://127.0.0.1:8000/media/productqr/tablet-samsung_tab-6-download.jpg",
+            "linked_products": []
+        }
+    },
+    {
+        "model": "products.product",
+        "pk": 7,
+        "fields": {
+            "product_name": "apple_watch",
+            "category": 4,
+            "qr_code": "http://127.0.0.1:8000/media/productqr/smartwatch-apple_watch-7.png",
+            "qr_codes_download": "http://127.0.0.1:8000/media/productqr/smartwatch-apple_watch-7-download.jpg",
+            "linked_products": []
+        }
+    },
+    {
+        "model": "products.product",
+        "pk": 8,
+        "fields": {
+            "product_name": "canon_eos",
+            "category": 5,
+            "qr_code": "http://127.0.0.1:8000/media/productqr/camera-canon_eos-8.png",
+            "qr_codes_download": "http://127.0.0.1:8000/media/productqr/camera-canon_eos-8-download.jpg",
+            "linked_products": []
+        }
+    },
+    {
+        "model": "products.variant",
+        "pk": 9,
+        "fields": {
+            "product": 5,
+            "quantity": 35,
+            "wholesale_price": 600.0,
+            "selling_price": 750.0,
+            "sku": "ipad_air-10.9inch-8GB-10hours"
+        }
+    },
+    {
+        "model": "products.variant",
+        "pk": 10,
+        "fields": {
+            "product": 5,
+            "quantity": 25,
+            "wholesale_price": 800.0,
+            "selling_price": 950.0,
+            "sku": "ipad_air-10.9inch-12GB-15hours"
+        }
+    },
+    {
+        "model": "products.variant",
+        "pk": 11,
+        "fields": {
+            "product": 6,
+            "quantity": 40,
+            "wholesale_price": 400.0,
+            "selling_price": 500.0,
+            "sku": "samsung_tab-10.4inch-8GB-10hours"
+        }
+    },
+    {
+        "model": "products.variant",
+        "pk": 12,
+        "fields": {
+            "product": 6,
+            "quantity": 30,
+            "wholesale_price": 500.0,
+            "selling_price": 600.0,
+            "sku": "samsung_tab-10.4inch-12GB-15hours"
+        }
+    },
+    {
+        "model": "products.variant",
+        "pk": 13,
+        "fields": {
+            "product": 7,
+            "quantity": 50,
+            "wholesale_price": 300.0,
+            "selling_price": 400.0,
+            "sku": "apple_watch-18hours-90Hz"
+        }
+    },
+    {
+        "model": "products.variant",
+        "pk": 14,
+        "fields": {
+            "product": 7,
+            "quantity": 35,
+            "wholesale_price": 400.0,
+            "selling_price": 500.0,
+            "sku": "apple_watch-24hours-120Hz"
+        }
+    },
+    {
+        "model": "products.variant",
+        "pk": 15,
+        "fields": {
+            "product": 8,
+            "quantity": 20,
+            "wholesale_price": 800.0,
+            "selling_price": 1000.0,
+            "sku": "canon_eos-48MP-15hours"
+        }
+    },
+    {
+        "model": "products.variant",
+        "pk": 16,
+        "fields": {
+            "product": 8,
+            "quantity": 15,
+            "wholesale_price": 1000.0,
+            "selling_price": 1200.0,
+            "sku": "canon_eos-64MP-20hours"
+        }
+    },
+    {
+        "model": "products.variant_option",
+        "pk": 21,
+        "fields": {
+            "variant": 9,
+            "option": 10
+        }
+    },
+    {
+        "model": "products.variant_option",
+        "pk": 22,
+        "fields": {
+            "variant": 9,
+            "option": 13
+        }
+    },
+    {
+        "model": "products.variant_option",
+        "pk": 23,
+        "fields": {
+            "variant": 9,
+            "option": 17
+        }
+    },
+    {
+        "model": "products.variant_option",
+        "pk": 24,
+        "fields": {
+            "variant": 10,
+            "option": 10
+        }
+    },
+    {
+        "model": "products.variant_option",
+        "pk": 25,
+        "fields": {
+            "variant": 10,
+            "option": 14
+        }
+    },
+    {
+        "model": "products.variant_option",
+        "pk": 26,
+        "fields": {
+            "variant": 10,
+            "option": 18
+        }
+    },
+    {
+        "model": "products.variant_option",
+        "pk": 27,
+        "fields": {
+            "variant": 11,
+            "option": 10
+        }
+    },
+    {
+        "model": "products.variant_option",
+        "pk": 28,
+        "fields": {
+            "variant": 11,
+            "option": 13
+        }
+    },
+    {
+        "model": "products.variant_option",
+        "pk": 29,
+        "fields": {
+            "variant": 11,
+            "option": 17
+        }
+    },
+    {
+        "model": "products.variant_option",
+        "pk": 30,
+        "fields": {
+            "variant": 12,
+            "option": 10
+        }
+    },
+    {
+        "model": "products.variant_option",
+        "pk": 31,
+        "fields": {
+            "variant": 12,
+            "option": 14
+        }
+    },
+    {
+        "model": "products.variant_option",
+        "pk": 32,
+        "fields": {
+            "variant": 12,
+            "option": 18
+        }
+    },
+    {
+        "model": "products.variant_option",
+        "pk": 33,
+        "fields": {
+            "variant": 13,
+            "option": 18
+        }
+    },
+    {
+        "model": "products.variant_option",
+        "pk": 34,
+        "fields": {
+            "variant": 13,
+            "option": 21
+        }
+    },
+    {
+        "model": "products.variant_option",
+        "pk": 35,
+        "fields": {
+            "variant": 14,
+            "option": 18
+        }
+    },
+    {
+        "model": "products.variant_option",
+        "pk": 36,
+        "fields": {
+            "variant": 14,
+            "option": 22
+        }
+    },
+    {
+        "model": "products.variant_option",
+        "pk": 37,
+        "fields": {
+            "variant": 15,
+            "option": 15
+        }
+    },
+    {
+        "model": "products.variant_option",
+        "pk": 38,
+        "fields": {
+            "variant": 15,
+            "option": 17
+        }
+    },
+    {
+        "model": "products.variant_option",
+        "pk": 39,
+        "fields": {
+            "variant": 16,
+            "option": 16
+        }
+    },
+    {
+        "model": "products.variant_option",
+        "pk": 40,
+        "fields": {
+            "variant": 16,
+            "option": 18
+        }
+    },
+    {
+        "model": "products.transportation",
+        "pk": 4,
+        "fields": {
+            "transportation_status": "confirmed",
+            "source": null,
+            "destination": 1,
+            "code": "a1b2c3d4",
+            "created_at": "2025-07-23T09:00:00.000Z",
+            "transported_at": "2025-07-23T09:30:00.000Z",
+            "received_at": "2025-07-23T10:00:00.000Z"
+        }
+    },
+    {
+        "model": "products.transported_products",
+        "pk": 5,
+        "fields": {
+            "transportation": 4,
+            "product": 5,
+            "quantity": 25
+        }
+    },
+    {
+        "model": "products.transported_products",
+        "pk": 6,
+        "fields": {
+            "transportation": 4,
+            "product": 6,
+            "quantity": 30
+        }
+    },
+    {
+        "model": "products.transported_products",
+        "pk": 7,
+        "fields": {
+            "transportation": 4,
+            "product": 7,
+            "quantity": 40
+        }
+    },
+    {
+        "model": "products.transported_products",
+        "pk": 8,
+        "fields": {
+            "transportation": 4,
+            "product": 8,
+            "quantity": 15
+        }
+    },
+    {
+        "model": "products.received_products",
+        "pk": 5,
+        "fields": {
+            "transportation": 4,
+            "product": 5,
+            "quantity": 25
+        }
+    },
+    {
+        "model": "products.received_products",
+        "pk": 6,
+        "fields": {
+            "transportation": 4,
+            "product": 6,
+            "quantity": 30
+        }
+    },
+    {
+        "model": "products.received_products",
+        "pk": 7,
+        "fields": {
+            "transportation": 4,
+            "product": 7,
+            "quantity": 40
+        }
+    },
+    {
+        "model": "products.received_products",
+        "pk": 8,
+        "fields": {
+            "transportation": 4,
+            "product": 8,
+            "quantity": 15
+        }
+    },
+    {
+        "model": "branches.branch_products",
+        "pk": 5,
+        "fields": {
+            "branch": 1,
+            "product": 5,
+            "quantity": 25
+        }
+    },
+    {
+        "model": "branches.branch_products",
+        "pk": 6,
+        "fields": {
+            "branch": 1,
+            "product": 6,
+            "quantity": 30
+        }
+    },
+    {
+        "model": "branches.branch_products",
+        "pk": 7,
+        "fields": {
+            "branch": 1,
+            "product": 7,
+            "quantity": 40
+        }
+    },
+    {
+        "model": "branches.branch_products",
+        "pk": 8,
+        "fields": {
+            "branch": 1,
+            "product": 8,
+            "quantity": 15
+        }
+    },
+    {
+        "model": "mobile.like",
+        "pk": 4,
+        "fields": {
+            "user_id": 2,
+            "product_id": 5
+        }
+    },
+    {
+        "model": "mobile.like",
+        "pk": 5,
+        "fields": {
+            "user_id": 2,
+            "product_id": 6
+        }
+    },
+    {
+        "model": "mobile.like",
+        "pk": 6,
+        "fields": {
+            "user_id": 2,
+            "product_id": 7
+        }
+    },
+    {
+        "model": "mobile.like",
+        "pk": 7,
+        "fields": {
+            "user_id": 2,
+            "product_id": 8
+        }
+    },
+    {
+        "model": "mobile.save",
+        "pk": 4,
+        "fields": {
+            "user": 2,
+            "product": 5,
+            "saves_at": "2025-07-23T11:00:00.000Z"
+        }
+    },
+    {
+        "model": "mobile.save",
+        "pk": 5,
+        "fields": {
+            "user": 2,
+            "product": 6,
+            "saves_at": "2025-07-23T11:30:00.000Z"
+        }
+    },
+    {
+        "model": "mobile.save",
+        "pk": 6,
+        "fields": {
+            "user": 2,
+            "product": 7,
+            "saves_at": "2025-07-23T12:00:00.000Z"
+        }
+    },
+    {
+        "model": "mobile.save",
+        "pk": 7,
+        "fields": {
+            "user": 2,
+            "product": 8,
+            "saves_at": "2025-07-23T12:30:00.000Z"
+        }
+    },
+    {
+        "model": "mobile.review",
+        "pk": 4,
+        "fields": {
+            "user": 2,
+            "product": 5,
+            "rating": 4,
+            "comment": "Great tablet for work and entertainment",
+            "created_at": "2025-07-23T13:00:00.000Z",
+            "updated_at": "2025-07-23T13:00:00.000Z"
+        }
+    },
+    {
+        "model": "mobile.review",
+        "pk": 5,
+        "fields": {
+            "user": 2,
+            "product": 6,
+            "rating": 3,
+            "comment": "Good value for money",
+            "created_at": "2025-07-23T13:30:00.000Z",
+            "updated_at": "2025-07-23T13:30:00.000Z"
+        }
+    },
+    {
+        "model": "mobile.review",
+        "pk": 6,
+        "fields": {
+            "user": 2,
+            "product": 7,
+            "rating": 5,
+            "comment": "Perfect fitness companion",
+            "created_at": "2025-07-23T14:00:00.000Z",
+            "updated_at": "2025-07-23T14:00:00.000Z"
+        }
+    },
+    {
+        "model": "mobile.review",
+        "pk": 7,
+        "fields": {
+            "user": 2,
+            "product": 8,
+            "rating": 4,
+            "comment": "Excellent camera quality",
+            "created_at": "2025-07-23T14:30:00.000Z",
+            "updated_at": "2025-07-23T14:30:00.000Z"
         }
     }
 ]

@@ -4,9 +4,9 @@ from branches.models import *
 from branches.serializers import *
 from datetime import date
 from django.utils import timezone
-import face_recognition
+# import face_recognition
 from .utils import *
-from PIL import Image
+# from PIL import Image
 import io
 import cv2
 class Job_TypeSerializer(serializers.ModelSerializer):
@@ -50,23 +50,23 @@ class EmployeeSerializer(serializers.ModelSerializer):
         validated_data =  super().validate(attrs)
         request= self.context['request']
         image = validated_data.get('image', None)
-        if image:
-            # قراءة الصورة باستخدام PIL
-            try:
-                img = Image.open(image)
-                img = img.convert('RGB')
-                # تحويل الصورة إلى numpy array
-                img_array = face_recognition.load_image_file(image)
-                # اكتشاف الوجوه في الصورة
-                face_locations = face_recognition.face_locations(img_array)
-                if len(face_locations) == 0:
-                    raise serializers.ValidationError({
-                        "image": "No face detected in the uploaded image."
-                    })
-            except Exception as e:
-                raise serializers.ValidationError({
-                    "image": "No face detected in the uploaded image."
-                })
+        # if image:
+        #     # قراءة الصورة باستخدام PIL
+        #     try:
+        #         img = Image.open(image)
+        #         img = img.convert('RGB')
+        #         # تحويل الصورة إلى numpy array
+        #         img_array = face_recognition.load_image_file(image)
+        #         # اكتشاف الوجوه في الصورة
+        #         face_locations = face_recognition.face_locations(img_array)
+        #         if len(face_locations) == 0:
+        #             raise serializers.ValidationError({
+        #                 "image": "No face detected in the uploaded image."
+        #             })
+        #     except Exception as e:
+        #         raise serializers.ValidationError({
+        #             "image": "No face detected in the uploaded image."
+        #         })
         if request.method == 'PUT':
             if self.instance.job_type.job_type == "Manager":
                 branches = Branch.objects.all()

@@ -5,7 +5,6 @@ from NOGA.utils import *
 from branches.models import Branch_Products
 from django.db.models.deletion import ProtectedError
 
-
 class UnitSerializer(serializers.ModelSerializer):
     class Meta:
         model=Unit
@@ -596,6 +595,16 @@ class TransportationSerializer(serializers.ModelSerializer):
         else:
             raise serializers.ValidationError({'message' : 'The transfer cannot be updated after it has been sent.'})
     
+    def to_representation(self, instance):
+        from branches.serializers import BranchSerializer
+        self.fields['source'] = BranchSerializer(read_only=True) 
+        self.fields['destination'] = BranchSerializer(read_only=True) 
+        data = super(TransportationSerializer, self).to_representation(instance) 
+        if instance.source:
+            data['source'] = instance.source.city.city_name + str(instance.source.number)
+        if instance.destination:
+            data['destination'] = instance.destination.city.city_name + str(instance.destination.number)
+        return data
 class RequestedProductsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Requested_Products
@@ -609,7 +618,10 @@ class RequestedProductsSerializer(serializers.ModelSerializer):
                 "read_only":True
             }
         }
-
+    def to_representation(self, instance):
+        self.fields['product'] = VariantSerializers(read_only=True) 
+        data = super(RequestedProductsSerializer, self).to_representation(instance) 
+        return data
 class TransportRequestSerializer(serializers.ModelSerializer):
     requested_products = RequestedProductsSerializer(many=True)
     transportation = TransportationSerializer(required = False)
@@ -626,6 +638,10 @@ class TransportRequestSerializer(serializers.ModelSerializer):
                 "read_only":True
             }
         }
+    def to_representation(self, instance):
+        data = super(TransportRequestSerializer, self).to_representation(instance) 
+        data['branch_name'] = instance.branch.city.city_name + str(instance.branch.number)
+        return data
     def create(self, validated_data):
         requested_products = validated_data.pop("requested_products" , [])
         transport_request_instance = super().create(validated_data)
@@ -654,3 +670,8 @@ class TransportRequestSerializer(serializers.ModelSerializer):
         else:
             raise serializers.ValidationError({'message' : 'The request cannot be updated after it has been processed.'})
 
+
+class RecommendationSerializer(serializers.Serializer):
+    product = ProductSerializer()
+    score = serializers.FloatField()
+    reason = serializers.CharField()

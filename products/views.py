@@ -11,6 +11,8 @@ from rest_framework.decorators import api_view , permission_classes
 from .filters import *
 from django.db.models import Q
 from django.utils import timezone
+from .utils.recommendation_utils import RecommendationEngine
+from collections import defaultdict
 # Create your views here.
 
 
@@ -175,6 +177,10 @@ class TransportationsAPIView( generics.CreateAPIView , generics.ListAPIView ):
     queryset = Transportation.objects.all()
     serializer_class = TransportationSerializer
     pagination_class = Paginator
+    filter_backends=[filter.DjangoFilterBackend , filters.SearchFilter , filters.OrderingFilter]
+    filterset_fields=["id" , "transportation_status" , "source" , "destination" , "code" , "transported_products" , "received_products" , "created_at" , "transported_at" , "received_at"] 
+    search_fields=["id" , "transportation_status" , "source" , "destination" , "code" , "transported_products" , "received_products" , "created_at" , "transported_at" , "received_at"]
+    ordering_fields=["id" , "transportation_status" , "source" , "destination" , "code" , "transported_products" , "received_products" , "created_at" , "transported_at" , "received_at"] 
 
 class TransportationAPIView(generics.DestroyAPIView , generics.UpdateAPIView , generics.RetrieveAPIView):
     queryset = Transportation.objects.all().order_by('-created_at')
@@ -312,9 +318,13 @@ class TransportRequestsAPIView(generics.ListAPIView , generics.CreateAPIView):
     queryset = Transport_Request.objects.all().order_by('-created_at')
     serializer_class = TransportRequestSerializer
     pagination_class = Paginator
-    
+    filter_backends=[filter.DjangoFilterBackend , filters.SearchFilter , filters.OrderingFilter]
+    filterset_fields=["id" , "request_status" , "branch" , "requested_products" , "transportation" , "created_at"] 
+    search_fields=["id" , "request_status" , "branch" , "requested_products" , "transportation" , "created_at"]
+    ordering_fields=["id" , "request_status" , "branch" , "requested_products" , "transportation" , "created_at"] 
 
-class TransportRequestAPIView(generics.DestroyAPIView , generics.UpdateAPIView):
+
+class TransportRequestAPIView(generics.DestroyAPIView , generics.UpdateAPIView , generics.RetrieveAPIView):
     queryset = Transport_Request.objects.all()
     serializer_class = TransportRequestSerializer
     def delete(self, request, *args, **kwargs):
@@ -361,7 +371,7 @@ def ProcessTransportRequest(request , pk):
                 for requested_product in requested_products_instances:
                     transported_product = find_element_by_id2(transported_products , requested_product.product.id )
                     if transported_product is not None:
-                        if transported_product['quantity'] >= requested_product.quantity:
+                        if int(transported_product['quantity']) >= requested_product.quantity:
                             requested_product.product_request_status = "fully-approved"
                             is_rejected = False
                         else:
@@ -408,3 +418,88 @@ def RejectTransportRequest(request , pk):
         return Response({"message" : "Request not found"} , status=status.HTTP_404_NOT_FOUND)
 
     return Response( data, status=status.HTTP_200_OK)
+
+
+# views.py
+@api_view(['GET'])
+def item_item_recommendations(request, item_id):
+    try:
+        # Check if item exists
+        if not Product.objects.filter(id=item_id).exists():
+            return Response(
+                {"error": "Item not found"}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Get users who interacted with the target item
+        target_users = RecommendationEngine.get_users_who_interacted_with_item(item_id)
+        print("target_users" , target_users)
+        if not target_users:
+            return Response(
+                {"error": "No interactions found for this item"}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Get user interaction matrix
+        user_item_matrix = RecommendationEngine.get_user_interaction_matrix()
+        print("user_item_matrix" , user_item_matrix)
+        
+        # Find items that these users also interacted with
+        item_scores = defaultdict(float)
+        
+        for user_id in target_users:
+            print(user_id)
+            if user_id not in user_item_matrix:
+                continue
+                
+            user_items = user_item_matrix[user_id]
+            print("user_items" , user_items)
+            
+            for other_item_id, score in user_items.items():
+                if other_item_id != item_id:
+                    item_scores[other_item_id] += score
+        print("item_scores" , item_scores)
+        
+        # Sort by score and get top recommendations
+        sorted_recommendations = sorted(
+            item_scores.items(), 
+            key=lambda x: x[1], 
+            reverse=True
+        )[:10]  # Top 10 recommendations
+        
+        # Prepare response
+        recommended_items = []
+        for rec_item_id, score in sorted_recommendations:
+            item = Product.objects.get(id=rec_item_id)
+            recommended_items.append({
+                "item": item,
+                "score": score,
+                "reason": "People who interacted with this item also liked"
+            })
+        
+        serializer = RecommendationSerializer(recommended_items, many=True)
+        return Response(serializer.data)
+        
+    except Exception as e:
+        return Response(
+            {"error": str(e)}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+# @api_view(['GET'])
+# @permission_classes([IsAuthenticated])
+# def get_recommendations(request):
+    user_id = request.user.id
+    num_recommendations = request.GET.get('limit', 10)
+    
+    try:
+        num_recommendations = int(num_recommendations)
+    except ValueError:
+        num_recommendations = 10
+    
+    engine = RecommendationEngine()
+    recommendations = engine.get_recommendations(user_id, num_recommendations)
+    
+    serializer = RecommendationSerializer(recommendations, many=True)
+    return Response(serializer.data)

@@ -2,7 +2,7 @@
 from collections import defaultdict
 from django.db.models import Q
 from mobile.models import Like, Save, Review , Client_Profile
-from sales.models import Purchase , Purchased_Products
+from sales.models import Purchase , Purchased_Products , Customer
 
 class RecommendationEngine:
     # Weight different interaction types
@@ -19,34 +19,35 @@ class RecommendationEngine:
         user_item_matrix = defaultdict(dict)
         
         # Process likes
-        for like in Like.objects.all().select_related('user', 'product'):
-            user_item_matrix[like.user_id][like.product_id] = user_item_matrix[
-                like.user_id
+        for like in Like.objects.all().select_related('user_id', 'product_id'):
+            user_item_matrix[like.user_id.id][like.product_id.id] = user_item_matrix[
+                like.user_id.id
             ].get(like.product_id, 0) + RecommendationEngine.INTERACTION_WEIGHTS['like']
         
         # Process saves
         for save in Save.objects.all().select_related('user', 'product'):
-            user_item_matrix[save.user][save.product] = user_item_matrix[
-                save.user
-            ].get(save.product, 0) + RecommendationEngine.INTERACTION_WEIGHTS['save']
+            user_item_matrix[save.user.id][save.product.id] = user_item_matrix[
+                save.user.id
+            ].get(save.product.id, 0) + RecommendationEngine.INTERACTION_WEIGHTS['save']
         
         # Process ratings
         for rating in Review.objects.all().select_related('user', 'product'):
             normalized_rating = rating.rating / 5.0
-            user_item_matrix[rating.user][rating.product] = user_item_matrix[
-                rating.user
-            ].get(rating.product, 0) + (normalized_rating * RecommendationEngine.INTERACTION_WEIGHTS['rating'])
+            user_item_matrix[rating.user.id][rating.product.id] = user_item_matrix[
+                rating.user.id
+            ].get(rating.product.id, 0) + (normalized_rating * RecommendationEngine.INTERACTION_WEIGHTS['rating'])
         
         # Process purchases
         for purchase in Purchase.objects.all():
             user = Client_Profile.objects.filter(national_number=purchase.customer.national_number)
+            print(user)
             if len(user) > 0:
-                user = user.first()
+                user = user.first().user
                 for purchased_product in purchase.purchased_products:
-                    user_item_matrix[user][purchased_product.product.product] = user_item_matrix[
-                        user
-                    ].get(purchased_product.product.product, 0) + (RecommendationEngine.INTERACTION_WEIGHTS['purchase'] * purchased_product.quantity)
-
+                    user_item_matrix[user.id][purchased_product.product.product.id] = user_item_matrix[
+                        user.id
+                    ].get(purchased_product.product.product.id, 0) + (RecommendationEngine.INTERACTION_WEIGHTS['purchase'] * purchased_product.quantity)
+        print(user_item_matrix)
         return user_item_matrix
     
     @staticmethod
@@ -75,8 +76,13 @@ class RecommendationEngine:
         user_ids.update(Like.objects.filter(product_id=item_id).values_list('user_id', flat=True))
         user_ids.update(Save.objects.filter(product=item_id).values_list('user_id', flat=True))
         user_ids.update(Review.objects.filter(product=item_id).values_list('user_id', flat=True))
-        customers = Purchased_Products.objects.filter(product=item_id).values_list('purchase__customer', flat=True)
-        users = list(customer for customer in customers)
-        user_ids.update()
+        customers_id = Purchased_Products.objects.filter(product__product=item_id).values_list('purchase__customer', flat=True)
+        users = []
+        for customer_id in customers_id:
+            customer = Customer.objects.get(id=customer_id)
+            user = Client_Profile.objects.filter(national_number=customer.national_number)
+            if len(user) > 0:
+                users.append(user.first().user)
+        user_ids.update(users)
         
         return user_ids
