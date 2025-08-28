@@ -92,14 +92,14 @@ class EmployeeSerializer(serializers.ModelSerializer):
  
     def create(self, validated_data):
         instance = super().create(validated_data)
-        image_data = None
-        image_rgb = None
-        if instance.image and instance.image.path:
-            image_bgr = cv2.imread(instance.image.path)
-            image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
-        if len(image_rgb) > 0 :
-            accept_register_new_user(instance.id , image_rgb , 'mediafiles/pickle/')
-            print(image_rgb)
+        # image_data = None
+        # image_rgb = None
+        # if instance.image and instance.image.path:
+        #     image_bgr = cv2.imread(instance.image.path)
+        #     image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
+        # if len(image_rgb) > 0 :
+        #     accept_register_new_user(instance.id , image_rgb , 'mediafiles/pickle/')
+        #     print(image_rgb)
         return instance
     
 class WorkDaySerializer(serializers.ModelSerializer):
