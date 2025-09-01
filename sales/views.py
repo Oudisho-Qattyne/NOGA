@@ -1,10 +1,16 @@
 from django.shortcuts import render
 from rest_framework.views import APIView , Response , status
-from rest_framework import generics 
+from rest_framework import generics ,viewsets,status ,filters 
+from rest_framework.response import Response
+from rest_framework.decorators import action
+from django.db import transaction
 from .models import *
 from .serializers import *
+from .utils.association_rules import * 
 from django.db.models.deletion import ProtectedError
 from rest_framework.decorators import api_view , permission_classes
+from django_filters.rest_framework import DjangoFilterBackend
+from .utils.helpers import get_product_recommendations,get_sales_stats,get_analysis_stats
 
 
 # Create your views here.
@@ -201,3 +207,43 @@ def CancelPurchase(request , pk):
     except Purchase.DoesNotExist:
         return Response({"message" : "Purchase not found."} , status=status.HTTP_404_NOT_FOUND)
     
+class AssociationRuleViewSet(viewsets.ModelViewSet):
+    queryset=AssociationRule.objects.all()
+    serializer_class=AssociationRuleSerializer
+    filter_backends=[DjangoFilterBackend,filters.OrderingFilter,filters.SearchFilter]
+    filterset_fields = ['lift', 'confidence', 'support']  # تصفية حسب القيم
+    search_fields = ['antecedents', 'consequents']  
+    @action(detail=False,methods=['post'])
+    def update_rules(self,request):
+        try:
+            result=update_association_rules()
+            return Response({"message":result},status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error":str(e)},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    
+    @action(detail=True, methods=['get'])
+    def recommendations(self, request,*args,**kwargs):
+        # product_id = request.query_params.get("product_id")
+        product_id=kwargs.get('pk')
+        if not product_id:
+            return Response({"error": "product_id مطلوب"}, status=400)
+        try:
+            recs = get_product_recommendations(int(product_id))
+            return Response({"recommendations": recs})
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+    @action(detail=False, methods=["get"])
+    def stats(self, request):
+        return Response({
+            "sales_stats": get_sales_stats(),
+            "analysis_stats": get_analysis_stats(),
+        })
+
+# @api_view(['GET','post'])
+# def hello(request):
+#      rule=generate_association_rules_df()
+#      save_association_rules(rule)
+#      return Response({"message":"hello"})

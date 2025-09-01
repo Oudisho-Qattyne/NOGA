@@ -8,7 +8,7 @@ from django.utils import timezone
 from .utils import *
 # from PIL import Image
 import io
-import cv2
+# import cv2
 class Job_TypeSerializer(serializers.ModelSerializer):
     class Meta:
         model=Job_Type
