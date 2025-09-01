@@ -10,6 +10,7 @@ from .authentication import *
 from mobile.models import Client_Profile
 from mobile.serializers import ClientProfileSerializer
 from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.tokens import RefreshToken
 # Create your views here.
 
 class ClientRrgisterAPIView(APIView):
@@ -108,9 +109,13 @@ class LogoutView(APIView):
 
     def post(self, request):
         try:
-            refresh_token = request.data["refresh"]
+            refresh_token = request.data.get("refresh",None)
+            if not refresh_token:
+                return Response({"refresh" : "Refresh token is required."} , status=status.HTTP_400_BAD_REQUEST)
+
             token = RefreshToken(refresh_token)
             token.blacklist()  # إضافة التوكن إلى القائمة السوداء
             return Response(status=status.HTTP_205_RESET_CONTENT)
         except Exception as e:
+            print(e)
             return Response(status=status.HTTP_400_BAD_REQUEST)
