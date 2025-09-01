@@ -11,4 +11,7 @@ urlpatterns = [
     path('employees/login', EmployeeTokenObtainPairView.as_view() , name='token_obtain_pair'),
     path('refresh', TokenRefreshView.as_view(), name='token_refresh'),
 
+    path('mobile/logout', LogoutView.as_view() , name='logout'),
+    path('employees/logout', LogoutView.as_view() , name='logout'),
+
 ]
