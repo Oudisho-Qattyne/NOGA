@@ -4,9 +4,9 @@ from branches.models import *
 from branches.serializers import *
 from datetime import date
 from django.utils import timezone
-# import face_recognition
+import face_recognition
 from .utils import *
-# from PIL import Image
+from PIL import Image
 import io
 import cv2
 class Job_TypeSerializer(serializers.ModelSerializer):
@@ -50,23 +50,23 @@ class EmployeeSerializer(serializers.ModelSerializer):
         validated_data =  super().validate(attrs)
         request= self.context['request']
         image = validated_data.get('image', None)
-        # if image:
-        #     # قراءة الصورة باستخدام PIL
-        #     try:
-        #         img = Image.open(image)
-        #         img = img.convert('RGB')
-        #         # تحويل الصورة إلى numpy array
-        #         img_array = face_recognition.load_image_file(image)
-        #         # اكتشاف الوجوه في الصورة
-        #         face_locations = face_recognition.face_locations(img_array)
-        #         if len(face_locations) == 0:
-        #             raise serializers.ValidationError({
-        #                 "image": "No face detected in the uploaded image."
-        #             })
-        #     except Exception as e:
-        #         raise serializers.ValidationError({
-        #             "image": "No face detected in the uploaded image."
-        #         })
+        if image:
+            # قراءة الصورة باستخدام PIL
+            try:
+                img = Image.open(image)
+                img = img.convert('RGB')
+                # تحويل الصورة إلى numpy array
+                img_array = face_recognition.load_image_file(image)
+                # اكتشاف الوجوه في الصورة
+                face_locations = face_recognition.face_locations(img_array)
+                if len(face_locations) == 0:
+                    raise serializers.ValidationError({
+                        "image": "No face detected in the uploaded image."
+                    })
+            except Exception as e:
+                raise serializers.ValidationError({
+                    "image": "No face detected in the uploaded image."
+                })
         if request.method == 'PUT':
             if self.instance.job_type.job_type == "Manager":
                 branches = Branch.objects.all()
@@ -92,24 +92,34 @@ class EmployeeSerializer(serializers.ModelSerializer):
  
     def create(self, validated_data):
         instance = super().create(validated_data)
-        # image_data = None
-        # image_rgb = None
-        # if instance.image and instance.image.path:
-        #     image_bgr = cv2.imread(instance.image.path)
-        #     image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
-        # if len(image_rgb) > 0 :
-        #     accept_register_new_user(instance.id , image_rgb , 'mediafiles/pickle/')
-        #     print(image_rgb)
+        image_data = None
+        image_rgb = None
+        if instance.image and instance.image.path:
+            image_bgr = cv2.imread(instance.image.path)
+            image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
+        if len(image_rgb) > 0 :
+            accept_register_new_user(instance.id , image_rgb , 'mediafiles/pickle/')
+            print(image_rgb)
         return instance
-    
+    def update(self, instance, validated_data):
+        instance = super().update(instance, validated_data)
+        image_data = None
+        image_rgb = None
+        if instance.image and instance.image.path:
+            image_bgr = cv2.imread(instance.image.path)
+            image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
+        if len(image_rgb) > 0 :
+            accept_register_new_user(instance.id , image_rgb , 'mediafiles/pickle/')
+            print(image_rgb)
+        return instance
 class WorkDaySerializer(serializers.ModelSerializer):
     day_name=serializers.CharField(source='get_day_display',read_only=True)
     class Meta:
         model=WorkDay
-        fields=['day_name','start_time','end_time','is_working_day' , 'day']
+        fields=['id' , 'day_name','start_time','end_time','is_working_day' , 'day']
         extra_kwargs={
             'schedule':{'write_only':True},
-            'day':{'write_only':True}
+            # 'day':{'write_only':True}
         }
     def validate(self,data):
         if data['start_time']>=data['end_time']:
@@ -132,7 +142,7 @@ class WorkScheduleSerializer(serializers.ModelSerializer):
         for day_data in work_days_data:
             WorkDay.objects.create(schedule=schedule,**day_data)
         if is_active:
-            workSchedules = WorkSchedule.objects.exclude(schedule)
+            workSchedules = WorkSchedule.objects.exclude(id=schedule.id)
             for workSchedual in workSchedules:
                 workSchedual.is_active = False
                 workSchedual.save()
@@ -163,22 +173,33 @@ class WorkScheduleSerializer(serializers.ModelSerializer):
 class AttendanceLogSerializer(serializers.ModelSerializer):
     class Meta:
         model=AttendanceLog
-        fields=['check_in','check_out']
+        fields=['id' ,'check_in','check_out']
         read_only_fields=['check_in','check_out']
 
 class AttendanceSerializer(serializers.ModelSerializer):
+    employee_name = serializers.SerializerMethodField()
+    national_number = serializers.SerializerMethodField()
     logs=AttendanceLogSerializer(read_only=True,many=True)
     class Meta:
         model=Attendance
         fields='__all__'
-        read_only_fields=['status','created_at','date','logs' ,'check_in_status', 'check_out_status']
-
+        read_only_fields=['id' , 'status','created_at','date','logs' ,'check_in_status', 'check_out_status' , "employee_name" , "national_number"]
+    def get_employee_name(self , object):
+        return object.employee.first_name +" " +  object.employee.middle_name + " " + object.employee.last_name
+    def get_national_number(self , object):
+        return object.employee.national_number
 
 class VecationSerializer(serializers.ModelSerializer):
+    employee_name = serializers.SerializerMethodField()
+    national_number = serializers.SerializerMethodField()
     class Meta:
         model=Vecation
-        fields=['employee','vecation_type','duration_type','start_date','end_date','created_at']
+        fields=['id' , 'employee' , 'employee_name' , 'national_number' ,'vecation_type','duration_type','start_date','end_date','created_at']
         read_only_fields=['created_at']
+    def get_employee_name(self , object):
+        return object.employee.first_name +" " +  object.employee.middle_name + " " + object.employee.last_name
+    def get_national_number(self , object):
+        return object.employee.national_number
     def validate(self, attrs):
         validated_data = super().validate(attrs)
         now = timezone.now().date()  # الحصول على التاريخ الحالي فقط (بدون الوقت)
@@ -198,7 +219,13 @@ class VecationSerializer(serializers.ModelSerializer):
         return validated_data
    
 class SalarySerializer(serializers.ModelSerializer):
+    employee_name = serializers.SerializerMethodField()
+    national_number = serializers.SerializerMethodField()
     class Meta:
         model=Salary
-        fields=['employee','month','year','base_salary','final_salary','absent_days','unpaid_vecation_days','late_or_left_early_count','generated_at']
+        fields=['id' , 'employee' , 'employee_name' , 'national_number','month','year','base_salary','final_salary','absent_days','unpaid_vecation_days','late_or_left_early_count','generated_at']
         read_only_fields=['salary_list']
+    def get_employee_name(self , object):
+        return object.employee.first_name +" " +  object.employee.middle_name + " " + object.employee.last_name
+    def get_national_number(self , object):
+        return object.employee.national_number

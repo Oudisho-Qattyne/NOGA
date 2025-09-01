@@ -327,7 +327,6 @@ class VariantSerializers(serializers.ModelSerializer):
         variant_instance.qr_codes_download = qr_codes_download
         if images_data:
             variant_instance.images.all().delete()
-        print(images_data)
         for image_data in images_data:
             Variant_Image.objects.create(variant=variant_instance, image=image_data)
         return variant_instance
@@ -375,7 +374,6 @@ class ProductSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         linked_products = validated_data.pop('linked_products' , [])
         images_data = self.context['request'].FILES.getlist('images')
-        print(images_data)
         product = Product.objects.create(**validated_data)
         qr_code , qr_codes_download = generateQR(self.context.get('request') , product.id , f'{product.category.category}-{product.product_name}' , product.category.category)
         product.qr_code = qr_code
@@ -420,7 +418,6 @@ class TransportedProductSerializer(serializers.ModelSerializer):
         }
     def validate(self, attrs):
         validated_data = super().validate(attrs)
-        # print(attrs)
         transportation = attrs.get('transportation',None) or self.context.get('transportation',None)
         variant = validated_data['product']
         quantity = validated_data['quantity']
@@ -428,12 +425,15 @@ class TransportedProductSerializer(serializers.ModelSerializer):
         if transportation is not None:
             if transportation.source != None:
                 try:
-                    variant = Branch_Products.objects.get(branch=transportation.source ,product=variant.product.id) 
+                    variant = Branch_Products.objects.get(branch=transportation.source ,product=variant.id) 
                 except Branch_Products.DoesNotExist:
                     raise serializers.ValidationError({variant.product.product.product_name : "This product does not exist in this branch"})
         if variant.quantity < quantity:
-            raise serializers.ValidationError({variant.product.product_name : "The amount transported greater than you have"})
-        
+            if transportation is not None:
+                if transportation.source != None:
+                    raise serializers.ValidationError({variant.product.product.product_name : "The amount transported greater than you have"})
+                else :
+                    raise serializers.ValidationError({variant.product.product_name : "The amount transported greater than you have"})
         return validated_data
 
     def to_representation(self, instance):
@@ -459,7 +459,6 @@ class ReceivedProductSerializer(serializers.ModelSerializer):
         ids = list(x.product.id for x in transported_products)
         variant = validated_data['product']
         quantity = validated_data['quantity']
-        print(ids , variant.id)
         if variant.id not in ids:
             raise serializers.ValidationError({variant.product.product_name : "This product is not transported"})
         transported_product = find_element_by_id(transported_products , variant.id)
@@ -506,7 +505,29 @@ class TransportationSerializer(serializers.ModelSerializer):
                 "read_only":True
             }
         }
-    
+    def validate(self, attrs):
+        errors = []
+        validated_data = super().validate(attrs)
+        transported_products = validated_data.get('transported_products',[])
+        source = validated_data.get('source',None)
+        for transported_product in transported_products:
+            variant_instance = transported_product['product']
+            quantity = transported_product['quantity']
+            if source != None:
+                try:
+                    variant_instance = Branch_Products.objects.get(branch=source ,product=variant_instance.id) 
+                    if variant_instance.quantity < quantity:
+                            errors.append({variant_instance.product.product.product_name : "The amount transported greater than you have"})
+                except Branch_Products.DoesNotExist:
+                    errors.append({variant_instance.product.product_name : "This product does not exist in this branch"}) 
+            else:
+                if variant_instance.quantity < quantity:
+                        errors.append({variant_instance.product.product_name : "The amount transported greater than you have"})
+
+
+        if len(errors) > 0:
+            raise serializers.ValidationError({"transported_products" : errors})
+        return validated_data
     def create(self, validated_data):
         transported_products = validated_data.pop('transported_products',[])
         transportation = super().create(validated_data)
@@ -514,7 +535,7 @@ class TransportationSerializer(serializers.ModelSerializer):
         for transported_product in transported_products:
             variant_instance = transported_product['product']
             if transportation.source != None:
-                variant_instance = Branch_Products.objects.get(branch=transportation.source ,product=variant_instance.product.id) 
+                variant_instance = Branch_Products.objects.get(branch=transportation.source ,product=variant_instance.id) 
 
             transported_product['product'] = transported_product['product'].id
             transported_product['transportation'] = transportation.id
@@ -538,9 +559,7 @@ class TransportationSerializer(serializers.ModelSerializer):
             for old_transported_product in old_transported_products:
                 variant_instance = old_transported_product.product
                 if instance.source != None:
-                    variant_instance = Branch_Products.objects.get(branch=instance.source ,product=variant_instance.product.id) 
-                # print("test")
-                # print(  old_transported_product.quantity )
+                    variant_instance = Branch_Products.objects.get(branch=instance.source ,product=variant_instance.id) 
                 variant_instance.quantity = variant_instance.quantity + old_transported_product.quantity
                 old_transported_product.delete()
                 variant_instance.save()
@@ -548,15 +567,13 @@ class TransportationSerializer(serializers.ModelSerializer):
             for transported_product in transported_products:
                 variant_instance2 = transported_product['product']
                 if transportation_instance.source != None:
-                    variant_instance2 = Branch_Products.objects.get(branch=transportation_instance.source ,product=variant_instance.product.id) 
+                    variant_instance2 = Branch_Products.objects.get(branch=transportation_instance.source ,product=variant_instance.id) 
 
                 transported_product['product'] = transported_product['product'].id
                 transported_product['transportation'] = transportation_instance.id
                 transported_product_serialized = TransportedProductSerializer(data=transported_product)
                 transported_product_serialized.is_valid(raise_exception=True)
                 transported_product_serialized.save()
-                print( variant_instance2.quantity )
-                print(  transported_product['quantity'])
                 variant_instance2.quantity = variant_instance.quantity - transported_product['quantity']
                 variant_instance2.save()     
             transportation_instance.save()

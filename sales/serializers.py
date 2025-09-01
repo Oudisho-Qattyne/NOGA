@@ -547,6 +547,42 @@ class PurchaseSerializer(serializers.ModelSerializer):
             purchase.total_price += insatnce.total_price
             purchase.save()
         return purchase
+    
+    def update(self, instance, validated_data):
+        purchased_products = validated_data.pop("purchased_products" , None)
+        purchase = super().update(instance, validated_data)
+        Purchased_Products.objects.filter(purchase = instance).delete()
+        purchase.subtotal_price = 0
+        purchase.total_price = 0
+        for purchased_product in purchased_products:
+            purchased_product["purchase"] = purchase.id
+            # purchased_product["wholesale_price"] = purchased_product["product"].wholesale_price
+            # purchased_product["selling_price"] = purchased_product["product"].selling_price
+            # purchased_product["product"] = purchased_product["product"].id
+            product = purchased_product.get("product" , None)
+            quantity = purchased_product.get("quantity" , None)
+            product = purchased_product.get("product" , None)
+            quantity = purchased_product.get("quantity" , None)
+            branch = purchase.branch          
+            branch_product = Branch_Products.objects.filter(product=product , branch=branch).first()
+            discount = calculate_discount_instance(self , product)
+            if discount["discount"] is not None:
+                purchased_product['discount'] = discount["discount"].id
+                purchased_product['total_price'] = discount["total"] * quantity
+                purchased_product['has_discount'] = True
+            else:
+                purchased_product['total_price'] =  discount["total"] * quantity
+                purchased_product['has_discount'] = False
+            branch_product.quantity -= quantity
+            branch_product.save()
+            purchased_product_serialized_data = PurchasedProductsSerializer(data = purchased_product)
+            purchased_product_serialized_data.is_valid(raise_exception=True)
+            insatnce = purchased_product_serialized_data.save()
+            purchase.subtotal_price += insatnce.selling_price * insatnce.quantity
+            purchase.total_price += insatnce.total_price
+            purchase.save()
+            return purchase
+           
     def to_representation(self, instance):
         data = super(PurchaseSerializer, self).to_representation(instance)
         data['branch_name'] = instance.branch.city.city_name + str(instance.branch.number) 

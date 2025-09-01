@@ -54,7 +54,9 @@ def generatMonthlySalaries():
         for employee in Employee.objects.all():
             calculate_employee_salary(employee,year,last_month)
 
-scheduler.add_job(generatMonthlySalaries,'cron', day=1, hour=0, minute=0)  
+scheduler.add_job(generatMonthlySalaries,'cron', day=1, hour=0, minute=0)
+# scheduler.add_job(generatMonthlySalaries, 'cron', minute='*')
+
 
 scheduler.add_job(markAbsentEmployees, 'cron',hour=21,minute=31) 
 

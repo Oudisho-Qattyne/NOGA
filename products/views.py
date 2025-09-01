@@ -189,16 +189,24 @@ class TransportationAPIView(generics.DestroyAPIView , generics.UpdateAPIView , g
         try:
             instance = self.get_object()
             if instance.transportation_status == "packaging":
+                for transported_product in instance.transported_products:
+                    variant_instance = transported_product.product
+                    quantity = transported_product.quantity
+                    if instance.source != None:
+                        variant_instance = Branch_Products.objects.get(branch=instance.source ,product=variant_instance.id)
+                    variant_instance.quantity = variant_instance.quantity + quantity
+                    variant_instance.save() 
                 Transported_Products.objects.filter(transportation = instance).delete()
                 transport_request_instances = Transport_Request.objects.filter(transportation = instance)
                 for transport_request_instance in transport_request_instances: 
                     transport_request_instance.request_status = "waiting"
                     for transported_product in transport_request_instance.requested_products:
-                        variant_instance = transported_product.product
-                        if instance.source != None:
-                            variant_instance = Branch_Products.objects.get(branch=instance.source ,product=variant_instance.product.id)
-                        variant_instance.quantity = variant_instance.quantity +  transported_product.quantity
-                        variant_instance.save()
+                        # variant_instance = transported_product.product
+                        # print(instance.source)
+                        # if instance.source != None:
+                        #     variant_instance = Branch_Products.objects.get(branch=instance.source ,product=variant_instance.product.id)
+                        # variant_instance.quantity = variant_instance.quantity +  transported_product.quantity
+                        # variant_instance.save()
                         transported_product.product_request_status = "waiting"
                         transported_product.save()
                     transport_request_instance.transportation = None
