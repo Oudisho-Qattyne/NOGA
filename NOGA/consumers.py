@@ -19,10 +19,10 @@ from asgiref.sync import sync_to_async
 import cv2
 # import pandas as pd
 import numpy as np
-from ultralytics import YOLO
+# from ultralytics import YOLO
 
 
-model=YOLO('yolov8s.pt')
+# model=YOLO('yolov8s.pt')
 my_file = open("coco.txt", "r")
 data = my_file.read()
 class_list = data.split("\n") 
@@ -85,65 +85,73 @@ class SourceConsumer(AsyncWebsocketConsumer):
 
             frame = cv2.warpAffine(frame, rotation_matrix, (width, height))
 
-            if self.type == "visitors":
+            # if self.type == "visitors":
                 
-                area1=[(312,388),(289,390),(474,469),(497,462)]
+            #     area1=[(312,388),(289,390),(474,469),(497,462)]
 
-                area2=[(279,392),(250,397),(423,477),(454,469)]
+            #     area2=[(279,392),(250,397),(423,477),(454,469)]
 
-                def RGB(event, x, y, flags, param):
-                    if event == cv2.EVENT_MOUSEMOVE :  
-                        colorsBGR = [x, y]
+            #     def RGB(event, x, y, flags, param):
+            #         if event == cv2.EVENT_MOUSEMOVE :  
+            #             colorsBGR = [x, y]
                         
-                frame=cv2.resize(frame,(1020,500))
+            #     frame=cv2.resize(frame,(1020,500))
 
-                results=model.predict(frame)
+            #     results=model.predict(frame)
 
-                a=results[0].boxes.data
+            #     a=results[0].boxes.data
 
-                # px=pd.DataFrame(a).astype("float")
+            #     # px=pd.DataFrame(a).astype("float")
 
-                list=[]
+            #     list=[]
                         
-                # for index,row in px.iterrows():
-                #     x1=int(row[0])
-                #     y1=int(row[1])
-                #     x2=int(row[2])
-                #     y2=int(row[3])
-                #     d=int(row[5])
-                #     c=class_list[d]
+            #     # for index,row in px.iterrows():
+            #     #     x1=int(row[0])
+            #     #     y1=int(row[1])
+            #     #     x2=int(row[2])
+            #     #     y2=int(row[3])
+            #     #     d=int(row[5])
+            #     #     c=class_list[d]
 
-                #     if 'person' in c:
-                #         cv2.rectangle(frame,(x1,y1),(x2,y2),(0,255,0),2)
-                #         cv2.putText(frame,str(c),(x1,y1),cv2.FONT_HERSHEY_COMPLEX,(0.5),(255,255,255),1)
+            #     #     if 'person' in c:
+            #     #         cv2.rectangle(frame,(x1,y1),(x2,y2),(0,255,0),2)
+            #     #         cv2.putText(frame,str(c),(x1,y1),cv2.FONT_HERSHEY_COMPLEX,(0.5),(255,255,255),1)
                     
                     
-                cv2.polylines(frame,[np.array(area1,np.int32)],True,(255,0,0),2)
-                cv2.putText(frame,str('1'),(504,471),cv2.FONT_HERSHEY_COMPLEX,(0.5),(0,0,0),1)
-                cv2.polylines(frame,[np.array(area2,np.int32)],True,(255,0,0),2)
-                cv2.putText(frame,str('2'),(466,485),cv2.FONT_HERSHEY_COMPLEX,(0.5),(0,0,0),1)
+            #     cv2.polylines(frame,[np.array(area1,np.int32)],True,(255,0,0),2)
+            #     cv2.putText(frame,str('1'),(504,471),cv2.FONT_HERSHEY_COMPLEX,(0.5),(0,0,0),1)
+            #     cv2.polylines(frame,[np.array(area2,np.int32)],True,(255,0,0),2)
+            #     cv2.putText(frame,str('2'),(466,485),cv2.FONT_HERSHEY_COMPLEX,(0.5),(0,0,0),1)
 
  
-                success ,byte_data = cv2.imencode('.jpg' , frame)
-                await self.channel_layer.group_send(
-                    self.group_name,
-                    {
-                        "type": "video.frame",
-                        "data": byte_data.tobytes()
-                    }
-                )
+            #     success ,byte_data = cv2.imencode('.jpg' , frame)
+            #     await self.channel_layer.group_send(
+            #         self.group_name,
+            #         {
+            #             "type": "video.frame",
+            #             "data": byte_data.tobytes()
+            #         }
+            #     )
 
-            elif self.type == "monitoring":
-                success ,byte_data = cv2.imencode('.jpg' , frame)
-                await self.channel_layer.group_send(
-                    self.group_name,
-                    {
-                        "type": "video.frame",
-                        "data": byte_data.tobytes()
-                        # "data": bytes_data
-                    }
-                )
-
+            # elif self.type == "monitoring":
+            #     success ,byte_data = cv2.imencode('.jpg' , frame)
+            #     await self.channel_layer.group_send(
+            #         self.group_name,
+            #         {
+            #             "type": "video.frame",
+            #             "data": byte_data.tobytes()
+            #             # "data": bytes_data
+            #         }
+            #     )
+        success ,byte_data = cv2.imencode('.jpg' , frame)
+        await self.channel_layer.group_send(
+            self.group_name,
+            {
+                "type": "video.frame",
+                "data": byte_data.tobytes()
+                # "data": bytes_data
+            }
+        )
     async def video_frame(self, event):
         await self.send(bytes_data=event["data"])
 
