@@ -1,4 +1,5 @@
 from django.utils import timezone
+from datetime import datetime
 
 def is_coupon_valid(coupon):
     """
@@ -8,3 +9,11 @@ def is_coupon_valid(coupon):
     """
     today = timezone.now().date()
     return coupon.start_date <= today <= coupon.end_date
+
+def validate_date_format(date_str):
+    try:
+        # Validate the date format as "yyyy-mm-dd"
+        datetime.strptime(date_str, '%Y-%m-%d')
+        return True  # Return True if the format is correct
+    except ValueError:
+        return False  # Return False if the format is incorrect
