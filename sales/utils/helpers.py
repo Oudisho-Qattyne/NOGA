@@ -25,6 +25,7 @@ def get_product_recommendations(product_id):
     for r in rules[:10]:
         for pid in r.consequents:
             unique_id.add(pid)
-            product=Product.objects.filter(id__in=unique_id)
-            serializer=ProductSimpleSerializer(product)
-    return Response(serializer.data)
+    # product=Product.objects.filter(id__in=unique_id)
+    # serializer=ProductSimpleSerializer(product)
+    # return Response(serializer.data)
+    return unique_id
