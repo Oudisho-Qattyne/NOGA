@@ -53,4 +53,6 @@ urlpatterns = [
     path('products/<int:product_pk>/comments/<int:comment_pk>/replaies',replay_list),
     path('products/<int:product_pk>/comments/<int:comment_pk>/replaies/<int:pk>',replay_detail),
 
+    path('recommendations/user-based/',user_recommendations)
+
     ]

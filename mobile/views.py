@@ -6,11 +6,14 @@ from .serializers import *
 from rest_framework.permissions import IsAuthenticated 
 from django_filters import rest_framework as filter
 from django.db.models import Prefetch
-from rest_framework.decorators import action
+from rest_framework.decorators import action,api_view, permission_classes
 from django.db.models import Q
 from rest_framework.exceptions import ValidationError , NotFound
 from .filters import *
 from products.models import Attribute
+from django.core.cache import cache
+from recommendations.user_user import UserUserRecommendationEngine
+
 # Create your views here.
 
 
@@ -267,3 +270,37 @@ class ReplayAPIView(viewsets.ModelViewSet):
         if comment.user_id!=request.user:
             return Response({"error":"Sorry,you do not have permission to delete this comment"},status=status.HTTP_403_FORBIDDEN)
         return super().destroy(request, *args, **kwargs)
+
+
+@api_view(['GET'])
+# @permission_classes([IsAuthenticated])
+def user_recommendations(request):
+    user = request.user
+    num_recommendations = int(request.GET.get('limit', 10))
+    
+    # التحقق من وجود النموذج في الذاكرة المؤقتة
+    engine = cache.get('user_user_engine')
+    
+    if not engine:
+        # بناء النموذج إذا لم يكن موجودًا
+        engine = UserUserRecommendationEngine()
+        engine.build_model()
+        
+        # حفظ في الذاكرة المؤقتة لمدة ساعة
+        cache.set('user_user_engine', engine, 3600)
+    
+    # الحصول على التوصيات
+    recommended_ids = engine.get_recommendations(user.id, num_recommendations)
+    
+    # جلب بيانات المنتجات الموصى بها
+    from .models import Product
+    from .serializers import ProductSimpleSerializer
+    
+    recommended_products = Product.objects.filter(id__in=recommended_ids)
+    serializer = ProductSimpleSerializer(recommended_products, many=True, context={'request': request})
+    
+    return Response({
+        'recommendations': serializer.data,
+        'count': len(serializer.data),
+        'based_on': 'users similar to you'
+    })

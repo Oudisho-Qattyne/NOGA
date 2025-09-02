@@ -21,11 +21,10 @@ def get_product_recommendations(product_id):
     """إرجاع منتجات موصى بها بناءً على القواعد."""
     rules = AssociationRule.objects.filter(antecedents__icontains=product_id).order_by("-confidence")
     recs = []
-    unique_id=set()
+    unique_ids=set()
     for r in rules[:10]:
         for pid in r.consequents:
-            unique_id.add(pid)
-    # product=Product.objects.filter(id__in=unique_id)
-    # serializer=ProductSimpleSerializer(product)
-    # return Response(serializer.data)
-    return unique_id
+            unique_ids.add(pid)
+    recommended_products=Product.objects.filter(id__in=unique_ids)
+    serializer = ProductSimpleSerializer(recommended_products, many=True)
+    return serializer.data
