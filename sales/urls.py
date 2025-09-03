@@ -19,11 +19,6 @@ urlpatterns = [
 
     path('customers' ,CustomersAPIVIew.as_view()),
     path('customers/<int:pk>' , CustomerAPIVIew.as_view()),
-    
-    path('assoication-rules',AssociationRuleViewSet.as_view({'get': 'list', 'post': 'create'})),
-    path('assoication-rules/<int:pk>/recommendations',AssociationRuleViewSet.as_view({'get':'recommendations'})),
-    path('hello',hello),
-    
 
 
     
@@ -39,5 +34,7 @@ urlpatterns = [
     path('purchaced-products-quantities/branches',TotalProductsAllBranch),
     path('purchaced-products-quantities/branches/<int:branch_id>',TotalProductsPerBranch),
     # path('customers/count',getCustomersNumber),
+    
+    
     
 ]

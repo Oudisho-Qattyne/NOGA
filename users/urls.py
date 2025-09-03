@@ -14,6 +14,8 @@ urlpatterns = [
     path('mobile/logout', LogoutView.as_view() , name='logout'),
     path('employees/logout', LogoutView.as_view() , name='logout'),
 
+    path('mobile/delete', DeleteUserAndProfileAPIView.as_view(), name='user-delete'),
+
     path('verify-email/<str:token>/', VerifyEmailAPIView.as_view(), name='verify-email'),
 
     path('reset-password', PasswordResetRequestAPIView.as_view(), name='reset-password'),

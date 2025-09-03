@@ -2,8 +2,8 @@ import pandas as pd
 from mlxtend.preprocessing import TransactionEncoder
 from mlxtend.frequent_patterns import apriori,association_rules
 from django.db import transaction
-from ..models import Purchase,Purchased_Products,AssociationRule
-
+from ..models import AssociationRule
+from sales.models import Purchase , Purchased_Products
 def extract_transaction_data():
     purchases=Purchase.objects.filter(status='completed')
     transactions=[]

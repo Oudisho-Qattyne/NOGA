@@ -607,38 +607,3 @@ class CustomerSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(errors)
         return validated_data
     
-
-class AssociationRuleSerializer(serializers.ModelSerializer):
-    antecedents_list=serializers.SerializerMethodField()
-    consequents_list=serializers.SerializerMethodField()
-    rule_strength=serializers.SerializerMethodField()
-    class Meta:
-        model=AssociationRule
-        fields=['antecedents','consequents','antecedents_list','consequents_list','support','confidence','lift','rule_strength','created_at']
-
-    def ensure_list(self,value):
-        if value is None:
-            return []
-        if isinstance(value,int):
-            return [value]
-        if isinstance(value,list):
-            return value
-        
-    def get_antecedents_list(self,obj):
-        antecedents=self.ensure_list(obj.antecedents)
-        return Product.objects.filter(id__in=antecedents).values_list('product_name',flat=True)
-    
-    def get_consequents_list(self,obj):
-        consequents=self.ensure_list(obj.consequents)
-        return Product.objects.filter(id__in=consequents).values_list('product_name',flat=True)
-
-    def get_rule_strength(self,obj):
-        if obj.lift>1.5 and obj.confidence>0.7:
-            return "Very strong"
-        elif obj.lift>1.2 and obj.confidence>0.5:
-            return 'Strong'
-        elif obj.lift>1.0 and obj.confidence>0.3:
-            return 'Medium'
-        else:
-            return 'Weak'
-        

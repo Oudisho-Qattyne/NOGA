@@ -9,8 +9,8 @@ from rest_framework.decorators import action , api_view
 from django.utils import timezone
 from datetime import datetime,timedelta
 import io
-from PIL import Image
-import numpy as np
+# from PIL import Image
+# import numpy as np
 # Create your views here.
     
 class EmployeesApiView(generics.ListAPIView,generics.ListCreateAPIView):
@@ -79,15 +79,16 @@ class AttendanceAPIView(viewsets.ModelViewSet):
         image_file = request.FILES.get('image')
         employee_id = None
         if image_file:
-            image_bytes = image_file.read()
-            image = Image.open(io.BytesIO(image_bytes))
-            if image.mode != 'RGB':
-                image = image.convert('RGB')
-            image_np = np.array(image)
-            result = recognize(image_np , "mediafiles/pickle")
-            if not result.isdigit():
-                return Response({'error': result}, status=status.HTTP_400_BAD_REQUEST)
-            employee_id = result
+            pass
+            # image_bytes = image_file.read()
+            # image = Image.open(io.BytesIO(image_bytes))
+            # if image.mode != 'RGB':
+            #     image = image.convert('RGB')
+            # image_np = np.array(image)
+            # result = recognize(image_np , "mediafiles/pickle")
+            # if not result.isdigit():
+            #     return Response({'error': result}, status=status.HTTP_400_BAD_REQUEST)
+            # employee_id = result
         else:
             employee_id = request.data.get('employee')
             if not employee_id:
@@ -150,15 +151,16 @@ class AttendanceAPIView(viewsets.ModelViewSet):
         image_file = request.FILES.get('image')
         employee_id = None
         if image_file:
-            image_bytes = image_file.read()
-            image = Image.open(io.BytesIO(image_bytes))
-            if image.mode != 'RGB':
-                image = image.convert('RGB')
-            image_np = np.array(image)
-            result = recognize(image_np , "mediafiles/pickle")
-            if not result.isdigit():
-                return Response({'error': result}, status=status.HTTP_400_BAD_REQUEST)
-            employee_id = result
+            pass
+            # image_bytes = image_file.read()
+            # image = Image.open(io.BytesIO(image_bytes))
+            # if image.mode != 'RGB':
+            #     image = image.convert('RGB')
+            # image_np = np.array(image)
+            # result = recognize(image_np , "mediafiles/pickle")
+            # if not result.isdigit():
+            #     return Response({'error': result}, status=status.HTTP_400_BAD_REQUEST)
+            # employee_id = result
         else:
             employee_id = request.data.get('employee')
             if not employee_id:

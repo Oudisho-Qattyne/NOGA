@@ -30,6 +30,7 @@ replay_detail = ReplayAPIView.as_view({
 })
 urlpatterns = [
     path('clients-profile' , ClientProfileAPIView.as_view()),
+    path('clients-profile/update', ClientProfileUpdateAPIView.as_view(), name='client-profile-update'),
 
     # path('comments',CommentsAPIView.as_view()),
     # path('comments/<int:pk>',CommentAPIView.as_view()),
@@ -40,7 +41,7 @@ urlpatterns = [
 
     path('products',ProductSimpleAPIView.as_view()),
     path('save/toggle',ToggleSaveView.as_view()),
-
+ 
     path('user/saves',UserSavedProductsAPIView.as_view()),
 
 
@@ -53,7 +54,14 @@ urlpatterns = [
     path('products/<int:product_pk>/comments/<int:comment_pk>/replaies',replay_list),
     path('products/<int:product_pk>/comments/<int:comment_pk>/replaies/<int:pk>',replay_detail),
 
+
     path('contact-us',ContactUssAPIView.as_view()),
     path('contact-us/<int:pk>',ContactUsAPIView.as_view()),
+
+
+    path('assoication-rules',AssociationRuleViewSet.as_view({'get': 'list', 'post': 'create'})),
+    path('assoication-rules/<int:pk>/recommendations',AssociationRuleViewSet.as_view({'get':'recommendations'})),
+    path('recommendations/user-based/',user_recommendations),
+    path('hello',hello),
 
     ]

@@ -17,6 +17,20 @@ class ClientProfileSerializer(serializers.ModelSerializer):
         validated_data['user'] = user
         return super().create(validated_data)
 
+class ClientProfileUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=Client_Profile
+        fields=[ 'national_number','first_name','middle_name','last_name','email','address','birth_date','gender' , 'phone'  , 'image' , 'user'] 
+        extra_kwargs = {
+            "user" : {'read_only' : True},
+        }
+    def update(self, instance, validated_data):
+        user = self.context['request'].user
+        validated_data['user'] = user
+        return super().update(instance, validated_data)
+    
+
+
 class ReplaySerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
@@ -144,7 +158,8 @@ class ReviewSerializer(serializers.ModelSerializer):
     def format_datetime(self,value):
         return timezone.localtime(value).strftime('%Y-%m-%d %H:%M:%S')
     def get_username(self, obj):
-        return obj.user_id.username
+        user = User.objects.get(id=obj.user_id)
+        return user.username
     def get_image(self, obj):
         try:
             client_profile = Client_Profile.objects.get(user=obj.user_id)
@@ -192,36 +207,36 @@ class ProductSimpleSerializer(serializers.ModelSerializer):
 
         serializer = VariantImageSerializer(images_list, many=True, context=self.context)
         return serializer.data + serializer1.data
-    def get_product_images(self, obj):
-        product_images_qs = obj.images.all()  # صور المنتج 
+    # def get_product_images(self, obj):
+    #     product_images_qs = obj.images.all()  # صور المنتج 
 
-        images_set = set()
+    #     images_set = set()
 
-        for img in product_images_qs:
-            images_set.add(img)
+    #     for img in product_images_qs:
+    #         images_set.add(img)
 
        
-        images_list = list(images_set)
+    #     images_list = list(images_set)
 
-        # استخدام الـ Serializer لتحويل الصور إلى بيانات JSON
-        serializer = ProductImageSerializer(images_list, many=True, context=self.context)
-        return serializer.data
+    #     # استخدام الـ Serializer لتحويل الصور إلى بيانات JSON
+    #     serializer = ProductImageSerializer(images_list, many=True, context=self.context)
+    #     return serializer.data
     
-    def get_variants_images(self, obj):
-        variants = obj.variants.all().prefetch_related('images')
-        images_set = set()
-        for variant in variants:
-            variant_images_qs = variant.images.all()  # صور المنتج
+    # def get_variants_images(self, obj):
+    #     variants = obj.variants.all().prefetch_related('images')
+    #     images_set = set()
+    #     for variant in variants:
+    #         variant_images_qs = variant.images.all()  # صور المنتج
 
 
-            for img in variant_images_qs:
-                images_set.add(img)
+    #         for img in variant_images_qs:
+    #             images_set.add(img)
 
         
-        images_list = list(images_set)
+    #     images_list = list(images_set)
 
-        serializer = VariantImageSerializer(images_list, many=True, context=self.context)
-        return serializer.data
+    #     serializer = VariantImageSerializer(images_list, many=True, context=self.context)
+    #     return serializer.data
     def get_save_count(self,obj):
         return obj.save_set.count()
     def get_like_count(self,obj):
@@ -274,3 +289,38 @@ class ContactUsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Contact_Us
         fields = '__all__'
+
+class AssociationRuleSerializer(serializers.ModelSerializer):
+    antecedents_list=serializers.SerializerMethodField()
+    consequents_list=serializers.SerializerMethodField()
+    rule_strength=serializers.SerializerMethodField()
+    class Meta:
+        model=AssociationRule
+        fields=['antecedents','consequents','antecedents_list','consequents_list','support','confidence','lift','rule_strength','created_at']
+
+    def ensure_list(self,value):
+        if value is None:
+            return []
+        if isinstance(value,int):
+            return [value]
+        if isinstance(value,list):
+            return value
+        
+    def get_antecedents_list(self,obj):
+        antecedents=self.ensure_list(obj.antecedents)
+        return Product.objects.filter(id__in=antecedents).values_list('product_name',flat=True)
+    
+    def get_consequents_list(self,obj):
+        consequents=self.ensure_list(obj.consequents)
+        return Product.objects.filter(id__in=consequents).values_list('product_name',flat=True)
+
+    def get_rule_strength(self,obj):
+        if obj.lift>1.5 and obj.confidence>0.7:
+            return "Very strong"
+        elif obj.lift>1.2 and obj.confidence>0.5:
+            return 'Strong'
+        elif obj.lift>1.0 and obj.confidence>0.3:
+            return 'Medium'
+        else:
+            return 'Weak'
+        

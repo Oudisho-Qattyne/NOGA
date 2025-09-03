@@ -3,7 +3,7 @@ from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from .serializers import *
-from rest_framework import status
+from rest_framework import status , generics
 from .models import *
 from rest_framework import exceptions
 from .authentication import *
@@ -130,17 +130,17 @@ class LogoutView(APIView):
 class VerifyEmailAPIView(APIView):
     def get(self, request, token):
         try:
-            
             user = User.objects.get(email_verification_token=token)
             user.is_email_verified = True
             user.is_active = True
             user.email_verification_token = ''
             user.save()
-            return Response({"message": "Email verified successfully."}, status=status.HTTP_200_OK)
+            message = "Email verified successfully."
+            return render(request, 'emailverificationresult.html', {'message': message, 'success': True}, status=status.HTTP_200_OK)
         except User.DoesNotExist:
-            return Response({"error": "Invalid token."}, status=status.HTTP_400_BAD_REQUEST)
-
-
+            message = "Invalid token."
+            return render(request, 'emailverificationresult.html', {'message': message, 'success': False}, status=status.HTTP_400_BAD_REQUEST)
+        
 
 User = get_user_model()
 token_generator = PasswordResetTokenGenerator()
@@ -202,3 +202,27 @@ def password_reset_invalid(request):
 def password_set(request):
    
     return render(request, 'password_set.html')
+
+class DeleteUserAndProfileAPIView(generics.DestroyAPIView):
+    permission_classes = [IsAuthenticated]
+    queryset = User.objects.all()
+
+    def get_object(self):
+        # السماح فقط للمستخدم الحالي بحذف حسابه
+        return self.request.user
+
+    def perform_destroy(self, instance):
+        # حذف Client_Profile المرتبط أولاً
+        try:
+            profile = Client_Profile.objects.get(user=instance)
+            profile.delete()
+        except Client_Profile.DoesNotExist:
+            pass
+        # ثم حذف المستخدم
+        instance.delete()
+
+    def delete(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response({"message": "User and client profile deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+

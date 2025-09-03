@@ -136,18 +136,3 @@ class Purchased_Products(models.Model):
     class Meta:
         unique_together=['purchase','product']
 
-
-class AssociationRule(models.Model):
-    antecedents=models.JSONField(help_text="المنتجات التي تم شرائها معاً",default=list)
-    consequents=models.JSONField(help_text="قائمة بالمنتجات المقترحة",default=list)
-    support=models.FloatField(help_text="معدل تكرار هذه المجموعة في البيانات ")
-    confidence=models.FloatField(help_text="قوة العلاقة بين المنتجات")
-    lift=models.FloatField(help_text="مقياس قوة الارتباط")
-    created_at=models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering=['-lift','-confidence']
-        indexes=[
-            models.Index(fields=['lift']),
-            models.Index(fields=['confidence'])
-        ]

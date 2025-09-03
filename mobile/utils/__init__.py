@@ -1,3 +1,4 @@
+from .association_rules import *
 
 __all__=[
     'extract_transaction_data',

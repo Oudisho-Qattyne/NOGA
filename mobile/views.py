@@ -6,24 +6,43 @@ from .serializers import *
 from rest_framework.permissions import IsAuthenticated 
 from django_filters import rest_framework as filter
 from django.db.models import Prefetch
-from rest_framework.decorators import action
+from rest_framework.decorators import action,api_view, permission_classes
 from django.db.models import Q
 from rest_framework.exceptions import ValidationError , NotFound
 from .filters import *
 from products.models import Attribute
+from django.core.cache import cache
+from recommendations.user_user import UserUserRecommendationEngine
+from .utils.helpers import *
+from .utils.association_rules import *
+from django_filters.rest_framework import DjangoFilterBackend
+
 # Create your views here.
 
 
-class ClientProfileAPIView(generics.ListAPIView,generics.ListCreateAPIView):
+class ClientProfileAPIView(generics.RetrieveAPIView,generics.CreateAPIView ):
     queryset=Client_Profile.objects.all()
     serializer_class=ClientProfileSerializer
     permission_classes=[IsAuthenticated]
-    pagination_class = Paginator
     # parser_classes = (MultiPartParser, FormParser)
-    filter_backends=[filter.DjangoFilterBackend , filters.SearchFilter , filters.OrderingFilter]
-    filterset_fields=['national_number','first_name','middle_name','last_name','address','gender']
-    search_fields=['national_number','first_name','middle_name','last_name','email','address','birth_date','gender' , 'phone' ]
-    ordering_fields=['national_number','first_name','middle_name','last_name','email','address','birth_date','gender' , 'phone']
+    # filter_backends=[filter.DjangoFilterBackend , filters.SearchFilter , filters.OrderingFilter]
+    # filterset_fields=['national_number','first_name','middle_name','last_name','address','gender']
+    # search_fields=['national_number','first_name','middle_name','last_name','email','address','birth_date','gender' , 'phone' ]
+    # ordering_fields=['national_number','first_name','middle_name','last_name','email','address','birth_date','gender' , 'phone']
+    def get_object(self):
+        # لتحديث ملف العميل الخاص بالمستخدم الحالي فقط 
+        return self.queryset.get(user=self.request.user)
+    
+class ClientProfileUpdateAPIView(generics.UpdateAPIView):
+    queryset = Client_Profile.objects.all()
+    serializer_class = ClientProfileSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self): 
+        # لتحديث ملف العميل الخاص بالمستخدم الحالي فقط 
+        return self.queryset.get(user=self.request.user)
+    # parser_classes = (MultiPartParser, FormParser)
+  
 
 
 class CommentsAPIView(generics.ListCreateAPIView):
@@ -278,3 +297,80 @@ class ContactUsAPIView(generics.RetrieveUpdateDestroyAPIView):
     queryset=Contact_Us.objects.all()
     serializer_class=ContactUsSerializer
     permission_classes=[permissions.IsAuthenticated]
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def user_recommendations(request):
+    user = request.user
+    num_recommendations = int(request.GET.get('limit', 10))
+    
+    # التحقق من وجود النموذج في الذاكرة المؤقتة
+    engine = cache.get('user_user_engine')
+    
+    if not engine:
+        # بناء النموذج إذا لم يكن موجودًا
+        engine = UserUserRecommendationEngine()
+        engine.build_model()
+        
+        # حفظ في الذاكرة المؤقتة لمدة ساعة
+        cache.set('user_user_engine', engine, 3600)
+    
+    # الحصول على التوصيات
+    recommended_ids = engine.get_recommendations(user.id, num_recommendations)
+    
+    # جلب بيانات المنتجات الموصى بها
+    from .models import Product
+    from .serializers import ProductSimpleSerializer
+    
+    recommended_products = Product.objects.filter(id__in=recommended_ids)
+    serializer = ProductSimpleSerializer(recommended_products, many=True, context={'request': request})
+    
+    return Response({
+        'recommendations': serializer.data,
+        'count': len(serializer.data),
+        'based_on': 'users similar to you'
+    })
+
+class AssociationRuleViewSet(viewsets.ModelViewSet):
+    queryset=AssociationRule.objects.all()
+    serializer_class=AssociationRuleSerializer
+    filter_backends=[DjangoFilterBackend,filters.OrderingFilter,filters.SearchFilter]
+    filterset_fields = ['lift', 'confidence', 'support']  # تصفية حسب القيم
+    search_fields = ['antecedents', 'consequents']  
+    @action(detail=False,methods=['post'])
+    def update_rules(self,request):
+        try:
+            result=update_association_rules()
+            return Response({"message":result},status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error":str(e)},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    
+    @action(detail=True, methods=['get'])
+    def recommendations(self, request,*args,**kwargs):
+        # product_id = request.query_params.get("product_id")
+        product_id=kwargs.get('pk')
+        if not product_id:
+            return Response({"error": "product_id مطلوب"}, status=400)
+        try:
+            recs = get_product_recommendations(int(product_id))
+            return Response({"recommendations": recs})
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+    @action(detail=False, methods=["get"])
+    def stats(self, request):
+        return Response({
+            "sales_stats": get_sales_stats(),
+            "analysis_stats": get_analysis_stats(),
+        })
+
+
+@api_view(['GET','post'])
+def hello(request):
+     rule=generate_association_rules_df()
+     save_association_rules(rule)
+     return Response({"message":"hello"})
+    
