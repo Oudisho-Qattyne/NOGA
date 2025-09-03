@@ -3,80 +3,316 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>WebSocket Image Viewer & Uploader</title>
+  <title>WebSocket Camera Stream</title>
   <style>
-    body { font-family: sans-serif; padding: 20px; }
-    input[type="text"], input[type="file"] { width: 100%; margin: 10px 0; }
-    img { max-width: 100%; border: 1px solid #ccc; margin-top: 10px; }
-    button { padding: 10px 20px; margin: 5px 0; }
+    body { 
+      font-family: 'Segoe UI', Tahoma, sans-serif; 
+      padding: 20px; 
+      max-width: 1000px;
+      margin: 0 auto;
+      background-color: #f5f5f5;
+    }
+    h2 {
+      color: #2c3e50;
+      border-bottom: 2px solid #3498db;
+      padding-bottom: 10px;
+    }
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    .panel {
+      flex: 1;
+      min-width: 300px;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    input[type="text"] { 
+      width: 100%; 
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    button { 
+      background-color: #3498db;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      margin: 5px 0;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #2980b9;
+    }
+    button:disabled {
+      background-color: #95a5a6;
+      cursor: not-allowed;
+    }
+    .video-container {
+      position: relative;
+      margin-top: 15px;
+    }
+    video, img {
+      width: 100%;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+      background-color: #eee;
+    }
+    .status {
+      padding: 8px;
+      margin-top: 10px;
+      border-radius: 4px;
+      text-align: center;
+    }
+    .connected {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    .disconnected {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .fps-control {
+      margin: 10px 0;
+    }
+    .fps-control label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
 
-  <h2>Frame Viewer</h2>
-  <input type="text" id="frameSocketUrl" placeholder="Enter WebSocket URL for receiving frames" />
-  <button onclick="connectFrameSocket()">Connect Frame Socket</button>
-  <img id="frameImage" alt="Live frame will appear here" />
+  <h1>WebSocket Camera Streaming</h1>
+  
+  <div class="container">
+    <div class="panel">
+      <h2>Camera Stream & Sender</h2>
+      <input type="text" id="sendSocketUrl" placeholder="Enter WebSocket URL for sending video stream" />
+      
+      <div class="fps-control">
+        <label for="fpsSlider">Frames per Second (FPS): <span id="fpsValue">10</span></label>
+        <input type="range" id="fpsSlider" min="1" max="30" value="10">
+      </div>
+      
+      <div class="controls">
+        <button onclick="startCamera()" id="startBtn">Start Camera</button>
+        <button onclick="startStreaming()" id="streamBtn" disabled>Start Streaming</button>
+        <button onclick="stopStreaming()" id="stopBtn" disabled>Stop Streaming</button>
+      </div>
+      
+      <div class="video-container">
+        <video id="cameraVideo" autoplay playsinline></video>
+      </div>
+      
+      <div id="cameraStatus" class="status">Camera not started</div>
+      <div id="streamStatus" class="status">Not streaming</div>
+    </div>
 
-  <hr>
-
-  <h2>Image Sender</h2>
-  <input type="text" id="sendSocketUrl" placeholder="Enter WebSocket URL for sending image" />
-  <input type="file" id="imageInput" accept="image/*" />
-  <button onclick="sendImage()">Send Image</button>
+    <div class="panel">
+      <h2>Frame Viewer</h2>
+      <input type="text" id="frameSocketUrl" placeholder="Enter WebSocket URL for receiving frames" />
+      <button onclick="connectFrameSocket()">Connect Frame Socket</button>
+      
+      <div class="video-container">
+        <img id="frameImage" alt="Received frames will appear here" />
+      </div>
+      
+      <div id="frameStatus" class="status">Not connected</div>
+    </div>
+  </div>
 
   <script>
     let frameSocket = null;
     let sendSocket = null;
+    let cameraStream = null;
+    let streamingInterval = null;
+    let currentFps = 10;
 
+    // Elements
+    const cameraVideo = document.getElementById('cameraVideo');
+    const startBtn = document.getElementById('startBtn');
+    const streamBtn = document.getElementById('streamBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const cameraStatus = document.getElementById('cameraStatus');
+    const streamStatus = document.getElementById('streamStatus');
+    const frameStatus = document.getElementById('frameStatus');
+    const fpsSlider = document.getElementById('fpsSlider');
+    const fpsValue = document.getElementById('fpsValue');
+
+    // Update FPS value display
+    fpsSlider.addEventListener('input', function() {
+      currentFps = parseInt(this.value);
+      fpsValue.textContent = currentFps;
+      
+      // Restart streaming with new FPS if currently streaming
+      if (streamingInterval) {
+        stopStreaming();
+        startStreaming();
+      }
+    });
+
+    // Start camera function
+    async function startCamera() {
+      try {
+        cameraStatus.textContent = 'Accessing camera...';
+        cameraStream = await navigator.mediaDevices.getUserMedia({ 
+          video: { width: 640, height: 480 },
+          audio: false 
+        });
+        
+        cameraVideo.srcObject = cameraStream;
+        cameraStatus.textContent = 'Camera active';
+        cameraStatus.className = 'status connected';
+        
+        // Enable streaming button
+        streamBtn.disabled = false;
+        startBtn.disabled = true;
+        
+      } catch (error) {
+        cameraStatus.textContent = `Camera error: ${error.message}`;
+        cameraStatus.className = 'status disconnected';
+        console.error('Camera error:', error);
+      }
+    }
+
+    // Start streaming function
+    function startStreaming() {
+      const url = document.getElementById('sendSocketUrl').value;
+      if (!url) {
+        alert('Please enter a WebSocket URL for sending');
+        return;
+      }
+      
+      if (!cameraStream) {
+        alert('Please start the camera first');
+        return;
+      }
+      
+      // Create or reuse WebSocket connection
+      if (!sendSocket || sendSocket.readyState !== WebSocket.OPEN) {
+        sendSocket = new WebSocket(url);
+        
+        sendSocket.onopen = () => {
+          streamStatus.textContent = 'Streaming started';
+          streamStatus.className = 'status connected';
+          streamBtn.disabled = true;
+          stopBtn.disabled = false;
+          
+          // Start capturing and sending frames
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          canvas.width = 640;
+          canvas.height = 480;
+          
+          streamingInterval = setInterval(() => {
+            if (sendSocket.readyState === WebSocket.OPEN) {
+              // Draw current video frame to canvas
+              ctx.drawImage(cameraVideo, 0, 0, canvas.width, canvas.height);
+              
+              // Convert to Blob and send
+              canvas.toBlob(blob => {
+                sendSocket.send(blob);
+              }, 'image/jpeg', 0.8); // 0.8 is quality factor
+            }
+          }, 1000 / currentFps);
+        };
+        
+        sendSocket.onerror = (err) => {
+          console.error('Send socket error:', err);
+          streamStatus.textContent = 'Streaming error';
+          streamStatus.className = 'status disconnected';
+        };
+        
+        sendSocket.onclose = () => {
+          stopStreaming();
+          streamStatus.textContent = 'Streaming connection closed';
+          streamStatus.className = 'status disconnected';
+        };
+      }
+    }
+
+    // Stop streaming function
+    function stopStreaming() {
+      if (streamingInterval) {
+        clearInterval(streamingInterval);
+        streamingInterval = null;
+      }
+      
+      if (sendSocket && sendSocket.readyState === WebSocket.OPEN) {
+        sendSocket.close();
+      }
+      
+      streamStatus.textContent = 'Streaming stopped';
+      streamStatus.className = 'status disconnected';
+      streamBtn.disabled = false;
+      stopBtn.disabled = true;
+    }
+
+    // Connect to frame WebSocket (receiver)
     function connectFrameSocket() {
-      const url = document.getElementById("frameSocketUrl").value;
+      const url = document.getElementById('frameSocketUrl').value;
       if (frameSocket) frameSocket.close();
 
       frameSocket = new WebSocket(url);
 
-      frameSocket.onopen = () => console.log("Connected to frame WebSocket");
+      frameSocket.onopen = () => {
+        console.log("Connected to frame WebSocket");
+        frameStatus.textContent = 'Connected to frame server';
+        frameStatus.className = 'status connected';
+      };
+      
       frameSocket.onmessage = (event) => {
         const data = event.data;
-        const img = document.getElementById("frameImage");
+        const img = document.getElementById('frameImage');
 
-        // Option 1: If data is base64-encoded image
         if (typeof data === "string" && data.startsWith("data:image")) {
+          // Base64 encoded image
           img.src = data;
         } else if (data instanceof Blob) {
-          // Option 2: If server sends binary image blobs
+          // Binary image blob
           const url = URL.createObjectURL(data);
           img.src = url;
         } else {
           console.warn("Unknown data format:", data);
         }
       };
-      frameSocket.onerror = (err) => console.error("Frame socket error:", err);
+      
+      frameSocket.onerror = (err) => {
+        console.error("Frame socket error:", err);
+        frameStatus.textContent = 'Frame server error';
+        frameStatus.className = 'status disconnected';
+      };
+      
+      frameSocket.onclose = () => {
+        frameStatus.textContent = 'Disconnected from frame server';
+        frameStatus.className = 'status disconnected';
+      };
     }
 
-    function sendImage() {
-      const url = document.getElementById("sendSocketUrl").value;
-      const fileInput = document.getElementById("imageInput");
-      const file = fileInput.files[0];
-
-      if (!file) {
-        alert("Please select an image file first.");
-        return;
+    // Clean up when leaving the page
+    window.addEventListener('beforeunload', () => {
+      if (streamingInterval) clearInterval(streamingInterval);
+      if (sendSocket) sendSocket.close();
+      if (frameSocket) frameSocket.close();
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
       }
-
-      if (!sendSocket || sendSocket.readyState !== WebSocket.OPEN) {
-        sendSocket = new WebSocket(url);
-
-        sendSocket.onopen = () => {
-          console.log("Connected to send WebSocket. Sending image...");
-          sendSocket.send(file);
-        };
-
-        sendSocket.onerror = (err) => console.error("Send socket error:", err);
-      } else {
-        sendSocket.send(file);
-      }
-    }
+    });
   </script>
 
 </body>

@@ -12,7 +12,7 @@ urlpatterns = [
     path('products/<int:pk>' , BranchProductsAPIView.as_view() ),
     path('find_nearest_branch' , find_nearest_branch_with_product),
 
-    path('cameras/' , CamerasApiView.as_view() ),
+    path('cameras' , CamerasApiView.as_view() ),
     path('cameras/<int:pk>' , CameraApiView.as_view() ),
     
 

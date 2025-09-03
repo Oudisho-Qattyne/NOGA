@@ -69,9 +69,10 @@ class BranchProductsSerializer(serializers.ModelSerializer):
         
         
 class CamerasSerializer(serializers.ModelSerializer):
+    branch_name = serializers.SerializerMethodField()
     class Meta:
         model = Camera
-        fields = ["id" , "branch" , "camera_type" , "source_url" , "view_url" , "is_active"]
+        fields = ["id" , "branch" , "branch_name" , "camera_type" , "source_url" , "view_url" , "is_active"]
         extra_kwargs = {
             "source_url":{
                 "read_only" : True
@@ -80,6 +81,8 @@ class CamerasSerializer(serializers.ModelSerializer):
                 "read_only" : True
             }
         }
+    def get_branch_name(self , obj):
+        return obj.branch.city.city_name + str(obj.branch.number)
     def create(self, validated_data):
         camera_instance = super().create(validated_data)
         request = self.context.get('request')

@@ -12,7 +12,7 @@ from rest_framework.exceptions import ValidationError , NotFound
 from .filters import *
 from products.models import Attribute
 from django.core.cache import cache
-from recommendations.user_user import UserUserRecommendationEngine
+from .utils.user_user import UserUserRecommendationEngine
 from .utils.helpers import *
 from .utils.association_rules import *
 from django_filters.rest_framework import DjangoFilterBackend

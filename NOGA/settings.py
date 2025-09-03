@@ -58,8 +58,7 @@ INSTALLED_APPS = [
     'branches',
     'employees',
     'sales',
-    'mobile',
-    'recommendations'
+    'mobile'
 ]
 
 MIDDLEWARE = [
@@ -107,16 +106,16 @@ DATABASES = {
     }
 }
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
-
 DATABASES = {
-    "default": dj_database_url.parse(os.environ.get("DATABASE_URL"))
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
 }
+
+# DATABASES = {
+#     "default": dj_database_url.parse(os.environ.get("DATABASE_URL"))
+# }
 
 
 # Password validation
@@ -225,3 +224,7 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'itsjustnoga@gmail.com'
 EMAIL_HOST_PASSWORD = 'ixwr lrlu gqpm aqlj'
 EMAIL_USE_TLS = True
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://noga-r0ln.onrender.com',
+]

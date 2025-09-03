@@ -98,7 +98,6 @@ class CamerasApiView(generics.CreateAPIView , generics.ListAPIView):
         "view_url",
         "branch__city__city_name",
         "is_active",
-        "branch"
 
     ]
     ordering_fields = [
@@ -121,7 +120,7 @@ class CamerasApiView(generics.CreateAPIView , generics.ListAPIView):
         "branch"
     ]
 
-class CameraApiView(generics.DestroyAPIView , generics.UpdateAPIView):
+class CameraApiView(generics.DestroyAPIView , generics.UpdateAPIView , generics.RetrieveAPIView):
     queryset = Camera.objects.all()
     serializer_class = CamerasSerializer
 
