@@ -193,7 +193,7 @@ class ProductSimpleSerializer(serializers.ModelSerializer):
         serializer = VariantImageSerializer(images_list, many=True, context=self.context)
         return serializer.data + serializer1.data
     def get_product_images(self, obj):
-        product_images_qs = obj.images.all()  # صور المنتج
+        product_images_qs = obj.images.all()  # صور المنتج 
 
         images_set = set()
 
