@@ -79,7 +79,7 @@ class CamerasSerializer(serializers.ModelSerializer):
             },
             "view_url":{
                 "read_only" : True
-            }
+            } 
         }
     def get_branch_name(self , obj):
         return obj.branch.city.city_name + str(obj.branch.number)
