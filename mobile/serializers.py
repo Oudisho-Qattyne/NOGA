@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import *
 from products.models import Product
-from products.serializers import ProductImageSerializer
+from products.serializers import ProductImageSerializer , VariantImageSerializer
 from django.utils import timezone
 from django.db.models import Avg
 from django.db.models import Max
@@ -159,12 +159,69 @@ class ProductSimpleSerializer(serializers.ModelSerializer):
     saved=serializers.SerializerMethodField()
     variant_options=serializers.SerializerMethodField()
     price=serializers.SerializerMethodField()
-    images = ProductImageSerializer(many = True)
+    images = serializers.SerializerMethodField()
+    # variants_images = serializers.SerializerMethodField()
     # reviews=ReviewSerializer(many=True,read_only=True)
     class Meta:
         model=Product
-        fields=["id" , "product_name" , "category",'save_count','average_rating' , "like_count" , "liked" , "saved" , "variant_options" , "images" , "price"]
+        fields=["id" , "product_name" , "category",'save_count','average_rating' , "like_count" , "liked" , "saved" , "variant_options" , "images"  , "price"]
+    def get_images(self , obj):
+        product_images_qs = obj.images.all()  # صور المنتج
+
+        images_set = set()
+
+        for img in product_images_qs:
+            images_set.add(img)
+
+       
+        images_list = list(images_set)
+
+        # استخدام الـ Serializer لتحويل الصور إلى بيانات JSON
+        serializer1 = ProductImageSerializer(images_list, many=True, context=self.context)
+        variants = obj.variants.all().prefetch_related('images')
+        images_set = set()
+        for variant in variants:
+            variant_images_qs = variant.images.all()  # صور المنتج
+
+
+            for img in variant_images_qs:
+                images_set.add(img)
+
+        
+        images_list = list(images_set)
+
+        serializer = VariantImageSerializer(images_list, many=True, context=self.context)
+        return serializer.data + serializer1.data
+    def get_product_images(self, obj):
+        product_images_qs = obj.images.all()  # صور المنتج
+
+        images_set = set()
+
+        for img in product_images_qs:
+            images_set.add(img)
+
+       
+        images_list = list(images_set)
+
+        # استخدام الـ Serializer لتحويل الصور إلى بيانات JSON
+        serializer = ProductImageSerializer(images_list, many=True, context=self.context)
+        return serializer.data
     
+    def get_variants_images(self, obj):
+        variants = obj.variants.all().prefetch_related('images')
+        images_set = set()
+        for variant in variants:
+            variant_images_qs = variant.images.all()  # صور المنتج
+
+
+            for img in variant_images_qs:
+                images_set.add(img)
+
+        
+        images_list = list(images_set)
+
+        serializer = VariantImageSerializer(images_list, many=True, context=self.context)
+        return serializer.data
     def get_save_count(self,obj):
         return obj.save_set.count()
     def get_like_count(self,obj):
@@ -212,3 +269,8 @@ class ProductSimpleSerializer(serializers.ModelSerializer):
         variants = obj.variants.all()
         max_price = variants.aggregate(Max('selling_price'))['selling_price__max']
         return max_price
+
+class ContactUsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Contact_Us
+        fields = '__all__'

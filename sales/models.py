@@ -1,6 +1,7 @@
 from django.db import models
 from products.models import Product , Option , Category , Variant
 from branches.models import Branch
+from django.core.exceptions import ValidationError
 # Create your models here.
 
 class Customer(models.Model):
@@ -112,13 +113,41 @@ class Purchase(models.Model):
             return self.purchased_products_set.all()
     
 class Purchased_Products(models.Model):
-    purchase = models.ForeignKey(Purchase , on_delete=models.PROTECT)
-    product = models.ForeignKey(Variant , on_delete=models.PROTECT)
+    purchase = models.ForeignKey(Purchase , on_delete=models.CASCADE)
+    product = models.ForeignKey(Variant , on_delete=models.CASCADE)
     wholesale_price = models.FloatField()
     selling_price = models.FloatField()
     total_price = models.FloatField()
     has_discount = models.BooleanField(default=False)
-    discount = models.ForeignKey(Discount , on_delete=models.PROTECT , null=True)
-    # in_pack = models.BooleanField(default=False)
-    # offer = models.ForeignKey(Offer , on_delete=models.PROTECT , null=True)
-    quantity = models.PositiveIntegerField()
+    discount = models.ForeignKey(Discount , on_delete=models.CASCADE , null=True)
+    quantity = models.PositiveIntegerField(default=1)
+
+    def clean(self):
+        if self.quantity<=0:
+            raise ValidationError("quantity must be more than 0")
+        if self.selling_price<=0:
+            raise ValidationError("selling_price must be more than 0")
+        if self.total_price<=0:
+            raise ValidationError("total_price must be more than 0")
+        
+    def save(self,*args,**kwargs):
+        self.clean()
+        return super().save(*args,**kwargs)
+    class Meta:
+        unique_together=['purchase','product']
+
+
+class AssociationRule(models.Model):
+    antecedents=models.JSONField(help_text="المنتجات التي تم شرائها معاً",default=list)
+    consequents=models.JSONField(help_text="قائمة بالمنتجات المقترحة",default=list)
+    support=models.FloatField(help_text="معدل تكرار هذه المجموعة في البيانات ")
+    confidence=models.FloatField(help_text="قوة العلاقة بين المنتجات")
+    lift=models.FloatField(help_text="مقياس قوة الارتباط")
+    created_at=models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering=['-lift','-confidence']
+        indexes=[
+            models.Index(fields=['lift']),
+            models.Index(fields=['confidence'])
+        ]

@@ -53,4 +53,7 @@ urlpatterns = [
     path('products/<int:product_pk>/comments/<int:comment_pk>/replaies',replay_list),
     path('products/<int:product_pk>/comments/<int:comment_pk>/replaies/<int:pk>',replay_detail),
 
+    path('contact-us',ContactUssAPIView.as_view()),
+    path('contact-us/<int:pk>',ContactUsAPIView.as_view()),
+
     ]

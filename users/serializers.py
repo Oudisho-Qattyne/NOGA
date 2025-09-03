@@ -1,15 +1,17 @@
 from rest_framework import serializers , exceptions
 from .models import *
+from django.core.mail import send_mail
 from mobile.models import Client_Profile
 from mobile.serializers import ClientProfileSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView 
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer 
 from rest_framework_simplejwt.tokens import RefreshToken
+import uuid
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model=User
-        fields = ["id" , "username" , "password" , 'is_employee' ]
+        fields = ["id" , "username" , "password" , 'is_employee' , "email" ]
         
         extra_kwargs = {
             "password" : {'write_only' : True},
@@ -18,6 +20,9 @@ class UserSerializer(serializers.ModelSerializer):
             'required' : True},
             'is_employee':{
                 'required':False
+            },
+            "email" :{
+                'required':True
             }
         }
     def create(self, validated_data):
@@ -25,7 +30,23 @@ class UserSerializer(serializers.ModelSerializer):
         user = self.Meta.model(**validated_data)
         if password is not None:
             user.set_password(password)
-        user.save()
+        if not user.is_employee:
+            user.is_active=False  
+            user.email_verification_token = str(uuid.uuid4())
+            user.save()
+            domain = self.context.get('domain', 'http://localhost:8000')
+            verification_link = f"{domain}/verify-email/{user.email_verification_token}/"                   
+            send_mail(
+                subject="Verify your email",
+                message=f"Welcome to NOGA , Please verify your email by clicking this link: {verification_link}",
+                from_email="noga@noga.com",
+                recipient_list=[user.email],
+                fail_silently=False,
+            )
+        else:
+            user.is_active=True  
+            user.save()
+
         return user
     
 class EmployeeUserSerializer(serializers.ModelSerializer):
@@ -75,3 +96,4 @@ class EmployeeTokenObtainPairSerializer(TokenObtainPairSerializer):
         data["access"] = str(refresh.access_token)
         return data
   
+

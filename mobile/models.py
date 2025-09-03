@@ -59,3 +59,8 @@ class Review(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.product.product_name}"
+
+class Contact_Us(models.Model):
+    name = models.CharField(max_length=200)
+    email = models.EmailField()
+    message = models.CharField(max_length=1000)

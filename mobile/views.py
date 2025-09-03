@@ -83,7 +83,7 @@ class ToggleLikeView(generics.CreateAPIView):
 
 
 class ProductSimpleAPIView(generics.ListAPIView):
-    queryset=Product.objects.all().prefetch_related('reviews')
+    queryset=Product.objects.all().prefetch_related('reviews' , "images")
     serializer_class=ProductSimpleSerializer
     permission_classes=[permissions.IsAuthenticatedOrReadOnly]
     permission_classes=[IsAuthenticated]
@@ -267,3 +267,14 @@ class ReplayAPIView(viewsets.ModelViewSet):
         if comment.user_id!=request.user:
             return Response({"error":"Sorry,you do not have permission to delete this comment"},status=status.HTTP_403_FORBIDDEN)
         return super().destroy(request, *args, **kwargs)
+
+
+class ContactUssAPIView(generics.ListCreateAPIView):
+    queryset=Contact_Us.objects.all()
+    serializer_class=ContactUsSerializer
+    permission_classes=[permissions.IsAuthenticated]
+
+class ContactUsAPIView(generics.RetrieveUpdateDestroyAPIView):
+    queryset=Contact_Us.objects.all()
+    serializer_class=ContactUsSerializer
+    permission_classes=[permissions.IsAuthenticated]

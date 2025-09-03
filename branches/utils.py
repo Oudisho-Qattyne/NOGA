@@ -18,7 +18,6 @@ def haversine(coord1, coord2):
     return R * c  # المسافة بالكيلومترات
 
 def parse_location(loc_str):
-    print(loc_str)
     lat_str, lon_str = loc_str.split(',')
     return float(lat_str), float(lon_str)
 

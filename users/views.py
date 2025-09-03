@@ -12,6 +12,10 @@ from mobile.serializers import ClientProfileSerializer
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
+from django.shortcuts import render, redirect
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.contrib.auth import get_user_model
+from django.contrib import messages
 # Create your views here.
 
 class ClientRrgisterAPIView(APIView):
@@ -23,7 +27,8 @@ class ClientRrgisterAPIView(APIView):
                 "validationError" : "password and confirm_password don't macth",
             })
         requset.data['is_employee'] = False
-        serializedData = UserSerializer(data=requset.data)
+        domain = f"{requset.scheme}://{requset.get_host()}"
+        serializedData = UserSerializer(data=requset.data , context={'domain': domain})
         serializedData.is_valid(raise_exception=True)
         serializedData.save()
         
@@ -59,6 +64,7 @@ class EmployeeRrgisterAPIView(APIView):
                 ]
             } , status=status.HTTP_403_FORBIDDEN)
         requset.data['is_employee'] = True
+        requset.data['email'] = str(employee.national_number) + "@noga.com"
         serializedData = UserSerializer(data=requset.data)
         serializedData.is_valid(raise_exception=True)
         user = serializedData.save()
@@ -118,3 +124,81 @@ class LogoutView(APIView):
             return Response(status=status.HTTP_205_RESET_CONTENT)
         except TokenError:
             return Response({"detail": "Token is invalid or expired"}, status=status.HTTP_400_BAD_REQUEST)
+        
+
+
+class VerifyEmailAPIView(APIView):
+    def get(self, request, token):
+        try:
+            
+            user = User.objects.get(email_verification_token=token)
+            user.is_email_verified = True
+            user.is_active = True
+            user.email_verification_token = ''
+            user.save()
+            return Response({"message": "Email verified successfully."}, status=status.HTTP_200_OK)
+        except User.DoesNotExist:
+            return Response({"error": "Invalid token."}, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+User = get_user_model()
+token_generator = PasswordResetTokenGenerator()
+
+
+class PasswordResetRequestAPIView(APIView):
+    def post(self, request):
+        email = request.data.get('email')
+        if not email:
+            return Response({"error": "Email is required."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response({"error": "User with this email does not exist."}, status=status.HTTP_404_NOT_FOUND)
+        
+        token = token_generator.make_token(user)
+        domain = f"{request.scheme}://{request.get_host()}"
+        reset_link = f"{domain}/reset-password-confirm/{user.pk}/{token}/"
+        
+        send_mail(
+            subject="Password Reset Request",
+            message=f"To reset your password, click the following link: {reset_link}",
+            from_email="noreply@yourdomain.com",
+            recipient_list=[email],
+            fail_silently=False,
+        )
+        
+        return Response({"message": "Password reset link sent to your email."}, status=status.HTTP_200_OK)
+    
+def password_reset_confirm(request, uid, token):
+    try:
+        user = User.objects.get(pk=uid)
+    except User.DoesNotExist:
+        user = None
+
+    if user is None or not token_generator.check_token(user, token):
+        messages.error(request, "الرابط غير صالح أو منتهي الصلاحية.")
+        return redirect('password_reset_invalid')
+
+    if request.method == 'POST':
+        password = request.POST.get('password')
+        password2 = request.POST.get('password2')
+
+        if password and password == password2:
+            user.set_password(password)
+            user.save()
+            messages.success(request, "تم إعادة تعيين كلمة المرور بنجاح!")
+            return redirect('password_set')  # أو أي صفحة تريد إعادة التوجيه إليها
+        else:
+            messages.error(request, "كلمتا المرور غير متطابقتين.")
+
+    return render(request, 'password_reset_confirm.html', {'uid': uid, 'token': token})
+
+def password_reset_invalid(request):
+   
+    return render(request, 'password_reset_invalid.html')
+
+def password_set(request):
+   
+    return render(request, 'password_set.html')
