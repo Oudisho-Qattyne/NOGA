@@ -273,7 +273,7 @@ class ReplayAPIView(viewsets.ModelViewSet):
 
 
 @api_view(['GET'])
-# @permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated])
 def user_recommendations(request):
     user = request.user
     num_recommendations = int(request.GET.get('limit', 10))
