@@ -134,6 +134,10 @@ class CamerasSerializer(serializers.ModelSerializer):
         return validated_data
 
 class BranchVisitorsSerializer(serializers.ModelSerializer):
+    branch_name = serializers.SerializerMethodField()
     class Meta:
         model = Branch_Visitors
-        fields = ['id', 'branch', 'date', 'visitors_count']
+        fields = ['id', 'branch', 'branch_name' ,  'date', 'visitors_count']
+    
+    def get_branch_name(self , obj):
+        return obj.branch.city.city_name + str(obj.branch.number)

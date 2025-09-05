@@ -281,7 +281,7 @@ class SourceConsumer(AsyncWebsocketConsumer):
                 # # Display count
                 # cv2.putText(frame, f"Count: {len(self.counted_ids)}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
 
-            # success, byte_data = cv2.imencode('.jpg', frame)
+                success, byte_data = cv2.imencode('.jpg', frame)
                 await self.channel_layer.group_send(
                     self.group_name,
                     {

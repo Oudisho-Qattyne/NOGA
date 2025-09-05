@@ -1,4 +1,5 @@
 from django.urls import path , include , re_path
+from mobile.views import AssociationRuleViewSet
 from .views import *
 urlpatterns = [
     path('discounts' , DiscountsAPIView.as_view()),
@@ -33,7 +34,11 @@ urlpatterns = [
     path('purchaced-products-quantities',TotalProducts),
     path('purchaced-products-quantities/branches',TotalProductsAllBranch),
     path('purchaced-products-quantities/branches/<int:branch_id>',TotalProductsPerBranch),
-    # path('customers/count',getCustomersNumber),
+
+    path('customers/count',getCustomersNumber),
+
+    path('assoication-rules',AssociationRuleViewSet.as_view({'get': 'list', 'post': 'update_rules'})),
+
     
     
     
