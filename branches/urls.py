@@ -14,6 +14,9 @@ urlpatterns = [
 
     path('cameras' , CamerasApiView.as_view() ),
     path('cameras/<int:pk>' , CameraApiView.as_view() ),
+
+    path('branch-visitors/', BranchVisitorsListView.as_view(), name='branch-visitors-list'),
+    path('branch-visitors/<int:pk>/', BranchVisitorsRetrieveView.as_view(), name='branch-visitors-detail'),
     
 
 

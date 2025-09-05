@@ -70,9 +70,10 @@ class BranchProductsSerializer(serializers.ModelSerializer):
         
 class CamerasSerializer(serializers.ModelSerializer):
     branch_name = serializers.SerializerMethodField()
+    area_points = serializers.JSONField(required=False, allow_null=True)
     class Meta:
         model = Camera
-        fields = ["id" , "branch" , "branch_name" , "camera_type" , "source_url" , "view_url" , "is_active"]
+        fields = ["id" , "branch" , "branch_name" , "camera_type" , "source_url" , "view_url" , "is_active" , "area_points"]
         extra_kwargs = {
             "source_url":{
                 "read_only" : True
@@ -81,6 +82,10 @@ class CamerasSerializer(serializers.ModelSerializer):
                 "read_only" : True
             } 
         }
+
+
+
+  
     def get_branch_name(self , obj):
         return obj.branch.city.city_name + str(obj.branch.number)
     def create(self, validated_data):
@@ -96,4 +101,39 @@ class CamerasSerializer(serializers.ModelSerializer):
         camera_instance.view_url = view_url
         camera_instance.save()
         return camera_instance
+    
+    def validate(self, attrs):
+        validated_data = super().validate(attrs)
+        area_points = validated_data.get("area_points" , None)
+        camera_type = validated_data.get("camera_type" , None)
+        if camera_type == "visitors":
+            # if area_points is None:
+            #     raise serializers.ValidationError({"area_points" : "This field is required"} )
+            # else:
+            if area_points is not None:
+                if not isinstance(area_points, dict):
+                    raise serializers.ValidationError("area_points must be a dictionary")
 
+                # يجب أن يحتوي dict على مفاتيح 'area1' و 'area2'
+                for key in ['area1', 'area2']:
+                    if key not in area_points:
+                        raise serializers.ValidationError(f"Missing key '{key}' in area_points")
+
+                    points = area_points[key]
+                    if not isinstance(points, list):
+                        raise serializers.ValidationError(f"'{key}' must be a list of points")
+
+                    for point in points:
+                        if not isinstance(point, dict):
+                            raise serializers.ValidationError(f"Each point in '{key}' must be a dict")
+                        if 'x' not in point or 'y' not in point:
+                            raise serializers.ValidationError(f"Each point in '{key}' must have 'x' and 'y' keys")
+                        if not (isinstance(point['x'], (int, float)) and isinstance(point['y'], (int, float))):
+                            raise serializers.ValidationError(f"'x' and 'y' must be numbers in '{key}'")
+
+        return validated_data
+
+class BranchVisitorsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Branch_Visitors
+        fields = ['id', 'branch', 'date', 'visitors_count']

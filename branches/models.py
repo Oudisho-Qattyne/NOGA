@@ -1,6 +1,6 @@
+from django.utils.timezone import now
 from django.db import models
 # Create your models here.
-
 class City(models.Model):
     def __str__(self) -> str:
         return self.city_name
@@ -32,3 +32,9 @@ class Camera(models.Model):
     source_url = models.CharField(max_length=300)
     view_url = models.CharField(max_length=300)
     is_active = models.BooleanField(default=False)
+    area_points = models.JSONField(null=True, blank=True)
+
+class Branch_Visitors(models.Model):
+    branch = models.ForeignKey(Branch , on_delete=models.CASCADE)
+    date = models.DateField(default=now)
+    visitors_count = models.IntegerField(default=0)

@@ -59,7 +59,7 @@ urlpatterns = [
     path('contact-us/<int:pk>',ContactUsAPIView.as_view()),
 
 
-    path('assoication-rules',AssociationRuleViewSet.as_view({'get': 'list', 'post': 'create'})),
+    path('assoication-rules',AssociationRuleViewSet.as_view({'get': 'list', 'post': 'update_urls'})),
     path('assoication-rules/<int:pk>/recommendations',AssociationRuleViewSet.as_view({'get':'recommendations'})),
     path('recommendations/user-based/',user_recommendations),
     path('hello',hello),

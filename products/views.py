@@ -497,7 +497,7 @@ def item_item_recommendations(request, item_id):
 
 # @api_view(['GET'])
 # @permission_classes([IsAuthenticated])
-# def get_recommendations(request):
+def get_recommendations(request):
     user_id = request.user.id
     num_recommendations = request.GET.get('limit', 10)
     

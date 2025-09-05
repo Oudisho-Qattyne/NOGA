@@ -191,3 +191,14 @@ def find_nearest_branch_with_product(request):
             "distance_km": round(min_distance, 2)
         }
     })
+
+class BranchVisitorsListView(generics.ListAPIView):
+    queryset = Branch_Visitors.objects.all()
+    serializer_class = BranchVisitorsSerializer
+    filter_backends = [filter.DjangoFilterBackend]
+    filterset_fields = ['branch', 'date', 'visitors_count']
+
+
+class BranchVisitorsRetrieveView(generics.RetrieveAPIView):
+    queryset = Branch_Visitors.objects.all()
+    serializer_class = BranchVisitorsSerializer

@@ -556,7 +556,11 @@ def TotalProducts(request):
     if month:
         if validate_date_format(month):
             statistics = statistics.filter(purchase_id__date_of_purchase__year = month.split('-')[0] ,purchase_id__date_of_purchase__month = month.split('-')[1])
-            statistics=statistics.values("product_id").annotate(total=Sum('purchased_quantity')).annotate(product_name = ExpressionWrapper(F("product_id__product_name") , output_field=models.CharField(max_length=100))).order_by("-total")
+            statistics=statistics.values("product__product").annotate(total=Sum('quantity')).annotate(product_name = ExpressionWrapper(F("product__product__product_name") , output_field=models.CharField(max_length=100))).values(
+    product_id=F("product__product"),
+    # total=F("total"),
+    # product_name=F("product_name")
+).order_by("-total")
             
             if(statistics):
                 return(Response(statistics))
@@ -567,7 +571,11 @@ def TotalProducts(request):
     elif year:
         if validate_date_format(year):
             statistics = statistics.filter(purchase_id__date_of_purchase__year = year.split('-')[0])
-            statistics=statistics.values("product_id").annotate(total=Sum('purchased_quantity')).annotate(product_name = ExpressionWrapper(F("product_id__product_name") , output_field=models.CharField(max_length=100))).order_by("-total")
+            statistics=statistics.values("product__product").annotate(total=Sum('quantity')).annotate(product_name = ExpressionWrapper(F("product__product__product_name") , output_field=models.CharField(max_length=100))).values(
+    product_id=F("product__product"),
+    # total=F("total"),
+    # product_name=F("product_name")
+).order_by("-total")
             
             if(statistics):
                 return(Response(statistics))
@@ -578,7 +586,11 @@ def TotalProducts(request):
     elif day:
         if validate_date_format(day):
             statistics = statistics.filter(purchase_id__date_of_purchase__year = day.split('-')[0] ,purchase_id__date_of_purchase__day = day.split('-')[2] , purchase_id__date_of_purchase__month = day.split('-')[1])
-            statistics=statistics.values("product_id").annotate(total=Sum('purchased_quantity')).annotate(product_name = ExpressionWrapper(F("product_id__product_name") , output_field=models.CharField(max_length=100))).order_by("-total")
+            statistics=statistics.values("product__product").annotate(total=Sum('quantity')).annotate(product_name = ExpressionWrapper(F("product__product__product_name") , output_field=models.CharField(max_length=100))).values(
+    product_id=F("product__product"),
+    # total=F("total"),
+    # product_name=F("product_name")
+).order_by("-total")
             if(statistics):
                 return(Response(statistics))
             else:
@@ -586,7 +598,11 @@ def TotalProducts(request):
         else: 
             return Response({"day" : "invalid date" }, status=status.HTTP_400_BAD_REQUEST)
     else:
-        statistics=statistics.values("product_id").annotate(total=Sum('purchased_quantity')).annotate(product_name = ExpressionWrapper(F("product_id__product_name") , output_field=models.CharField(max_length=100))).order_by("-total")
+        statistics=statistics.values("product__product").annotate(total=Sum('quantity')).annotate(product_name = ExpressionWrapper(F("product__product__product_name") , output_field=models.CharField(max_length=100))).values(
+    product_id=F("product__product"),
+    # total=F("total"),
+    # product_name=F("product_name")
+).order_by("-total")
             
         if(statistics):
             return(Response(statistics))
