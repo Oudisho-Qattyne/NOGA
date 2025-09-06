@@ -1,0 +1,601 @@
+[
+    {
+        "model":"employees.Job_Type",
+        "pk": 1,
+        "fields":{
+            "job_type": "CEO"
+        }
+    },
+    {
+        "model":"employees.Job_Type",
+        "pk": 2,
+        "fields":{
+            "job_type": "HR"
+        }
+    },
+    {
+        "model":"employees.Job_Type",
+        "pk": 3,
+        "fields":{
+            "job_type": "Warehouse Administrator"
+        }
+    },
+    {
+        "model":"employees.Job_Type",
+        "pk": 4,
+        "fields":{
+            "job_type": "Manager"
+        }
+    },
+    {
+        "model":"employees.Job_Type",
+        "pk": 5,
+        "fields":{
+            "job_type": "Sales Officer"
+        }
+    },
+    {
+        "model":"branches.City",
+        "pk":1,
+        "fields":{
+            "city_name":"Homs"
+           }
+    },
+    {
+        "model":"branches.City",
+        "pk":2,
+        "fields":{
+            "city_name":"Hama"
+           }
+    },
+    {
+        "model":"branches.City",
+        "pk":3,
+        "fields":{
+            "city_name":"Aleppo"
+           }
+    },
+    {
+        "model":"branches.City",
+        "pk":4,
+        "fields":{
+            "city_name":"Damascus"
+           }
+    },
+
+
+
+
+
+
+
+
+
+
+
+
+    {
+        "model": "products.Unit",
+        "pk": 1,
+        "fields": {
+            "unit": "GB"
+        }
+    },
+    {
+        "model": "products.Unit",
+        "pk": 2,
+        "fields": {
+            "unit": "MP"
+        }
+    },
+    {
+        "model": "products.Unit",
+        "pk": 3,
+        "fields": {
+            "unit": "mA"
+        }
+    },
+    {
+        "model": "products.Attribute",
+        "pk": 1,
+        "fields": {
+            "attribute": "storage",
+            "attribute_type": "number",
+            "is_multivalue": false,
+            "is_categorical": true,
+            "has_unit": true
+        }
+    },
+    {
+        "model": "products.Attribute_Unit",
+        "pk": 1,
+        "fields": {
+            "attribute": 1,
+            "unit": 1
+        }
+    },
+    {
+        "model": "products.Attribute",
+        "pk": 2,
+        "fields": {
+            "attribute": "cameras",
+            "attribute_type": "number",
+            "is_multivalue": true,
+            "is_categorical": true,
+            "has_unit": true
+        }
+    },
+    {
+        "model": "products.Attribute_Unit",
+        "pk": 2,
+        "fields": {
+            "attribute": 2,
+            "unit": 2
+        }
+    },
+    {
+        "model": "products.Attribute",
+        "pk": 3,
+        "fields": {
+            "attribute": "battery",
+            "attribute_type": "number",
+            "is_multivalue": false,
+            "is_categorical": true,
+            "has_unit": true
+        }
+    },
+    {
+        "model": "products.Attribute_Unit",
+        "pk": 3,
+        "fields": {
+            "attribute": 3,
+            "unit": 3
+        }
+    },
+    {
+        "model": "products.Attribute",
+        "pk": 4,
+        "fields": {
+            "attribute": "color",
+            "attribute_type": "number",
+            "is_multivalue": false,
+            "is_categorical": true,
+            "has_unit": false
+        }
+    },
+    {
+        "model": "products.Category",
+        "pk": 1,
+        "fields": {
+            "category": "phone",
+            "attributes": [
+                1,
+                3
+            ]
+        }
+    },
+    {
+        "model": "products.Category_Attribute",
+        "pk": 1,
+        "fields": {
+            "category": 1,
+            "attribute": 1
+        }
+    },
+    {
+        "model": "products.Category_Attribute",
+        "pk": 2,
+        "fields": {
+            "category": 1,
+            "attribute": 3
+        }
+    },
+
+
+
+
+    
+    {
+        "model": "products.unit",
+        "pk": 1,
+        "fields": {
+            "unit": "GB"
+        }
+    },
+    {
+        "model": "products.unit",
+        "pk": 2,
+        "fields": {
+            "unit": "MP"
+        }
+    },
+    {
+        "model": "products.unit",
+        "pk": 3,
+        "fields": {
+            "unit": "mA"
+        }
+    },
+    {
+        "model": "products.attribute",
+        "pk": 1,
+        "fields": {
+            "attribute": "storage",
+            "attribute_type": "number",
+            "is_multivalue": false,
+            "is_categorical": true,
+            "has_unit": true
+        }
+    },
+    {
+        "model": "products.attribute",
+        "pk": 2,
+        "fields": {
+            "attribute": "cameras",
+            "attribute_type": "number",
+            "is_multivalue": true,
+            "is_categorical": true,
+            "has_unit": true
+        }
+    },
+    {
+        "model": "products.attribute",
+        "pk": 3,
+        "fields": {
+            "attribute": "battery",
+            "attribute_type": "number",
+            "is_multivalue": false,
+            "is_categorical": true,
+            "has_unit": true
+        }
+    },
+    {
+        "model": "products.attribute",
+        "pk": 4,
+        "fields": {
+            "attribute": "color",
+            "attribute_type": "number",
+            "is_multivalue": false,
+            "is_categorical": true,
+            "has_unit": false
+        }
+    },
+    {
+        "model": "products.attribute_unit",
+        "pk": 1,
+        "fields": {
+            "unit": 1,
+            "attribute": 1
+        }
+    },
+    {
+        "model": "products.attribute_unit",
+        "pk": 2,
+        "fields": {
+            "unit": 2,
+            "attribute": 2
+        }
+    },
+    {
+        "model": "products.attribute_unit",
+        "pk": 3,
+        "fields": {
+            "unit": 3,
+            "attribute": 3
+        }
+    },
+    {
+        "model": "products.category",
+        "pk": 1,
+        "fields": {
+            "category": "phone",
+            "parent_category": null
+        }
+    },
+    {
+        "model": "products.category_attribute",
+        "pk": 1,
+        "fields": {
+            "category": 1,
+            "attribute": 1
+        }
+    },
+    {
+        "model": "products.category_attribute",
+        "pk": 2,
+        "fields": {
+            "category": 1,
+            "attribute": 3
+        }
+    },{
+        "model": "products.unit",
+        "pk": 4,
+        "fields": {
+            "unit": "inches"
+        }
+    },
+    {
+        "model": "products.unit",
+        "pk": 5,
+        "fields": {
+            "unit": "GHz"
+        }
+    },
+    {
+        "model": "products.attribute",
+        "pk": 5,
+        "fields": {
+            "attribute": "screen_size",
+            "attribute_type": "number",
+            "is_multivalue": false,
+            "is_categorical": true,
+            "has_unit": true
+        }
+    },
+    {
+        "model": "products.attribute",
+        "pk": 6,
+        "fields": {
+            "attribute": "processor_speed",
+            "attribute_type": "number",
+            "is_multivalue": false,
+            "is_categorical": true,
+            "has_unit": true
+        }
+    },
+    {
+        "model": "products.attribute",
+        "pk": 7,
+        "fields": {
+            "attribute": "ram",
+            "attribute_type": "number",
+            "is_multivalue": false,
+            "is_categorical": true,
+            "has_unit": true
+        }
+    },
+    {
+        "model": "products.attribute_unit",
+        "pk": 4,
+        "fields": {
+            "unit": 4,
+            "attribute": 5
+        }
+    },
+    {
+        "model": "products.attribute_unit",
+        "pk": 5,
+        "fields": {
+            "unit": 5,
+            "attribute": 6
+        }
+    },
+    {
+        "model": "products.attribute_unit",
+        "pk": 6,
+        "fields": {
+            "unit": 1,
+            "attribute": 7
+        }
+    },
+    {
+        "model": "products.category",
+        "pk": 2,
+        "fields": {
+            "category": "laptop",
+            "parent_category": null
+        }
+    },
+    {
+        "model": "products.category_attribute",
+        "pk": 3,
+        "fields": {
+            "category": 2,
+            "attribute": 5
+        }
+    },
+    {
+        "model": "products.category_attribute",
+        "pk": 4,
+        "fields": {
+            "category": 2,
+            "attribute": 6
+        }
+    },
+    {
+        "model": "products.category_attribute",
+        "pk": 5,
+        "fields": {
+            "category": 2,
+            "attribute": 7
+        }
+    },
+    {
+        "model": "products.unit",
+        "pk": 6,
+        "fields": {
+            "unit": "Mp"
+        }
+    },
+    {
+        "model": "products.unit",
+        "pk": 7,
+        "fields": {
+            "unit": "hours"
+        }
+    },
+    {
+        "model": "products.unit",
+        "pk": 8,
+        "fields": {
+            "unit": "W"
+        }
+    },
+    {
+        "model": "products.attribute",
+        "pk": 8,
+        "fields": {
+            "attribute": "camera_quality",
+            "attribute_type": "number",
+            "is_multivalue": false,
+            "is_categorical": true,
+            "has_unit": true
+        }
+    },
+    {
+        "model": "products.attribute",
+        "pk": 9,
+        "fields": {
+            "attribute": "battery_life",
+            "attribute_type": "number",
+            "is_multivalue": false,
+            "is_categorical": true,
+            "has_unit": true
+        }
+    },
+    {
+        "model": "products.attribute",
+        "pk": 10,
+        "fields": {
+            "attribute": "charging_speed",
+            "attribute_type": "number",
+            "is_multivalue": false,
+            "is_categorical": true,
+            "has_unit": true
+        }
+    },
+    {
+        "model": "products.attribute",
+        "pk": 11,
+        "fields": {
+            "attribute": "refresh_rate",
+            "attribute_type": "number",
+            "is_multivalue": false,
+            "is_categorical": true,
+            "has_unit": true
+        }
+    },
+    {
+        "model": "products.attribute",
+        "pk": 12,
+        "fields": {
+            "attribute": "storage_type",
+            "attribute_type": "text",
+            "is_multivalue": false,
+            "is_categorical": true,
+            "has_unit": false
+        }
+    },
+    {
+        "model": "products.attribute_unit",
+        "pk": 7,
+        "fields": {
+            "unit": 6,
+            "attribute": 8
+        }
+    },
+    {
+        "model": "products.attribute_unit",
+        "pk": 8,
+        "fields": {
+            "unit": 7,
+            "attribute": 9
+        }
+    },
+    {
+        "model": "products.attribute_unit",
+        "pk": 9,
+        "fields": {
+            "unit": 8,
+            "attribute": 10
+        }
+    },
+    {
+        "model": "products.attribute_unit",
+        "pk": 10,
+        "fields": {
+            "unit": 1,
+            "attribute": 11
+        }
+    },{
+        "model": "products.category",
+        "pk": 3,
+        "fields": {
+            "category": "tablet",
+            "parent_category": null
+        }
+    },
+    {
+        "model": "products.category",
+        "pk": 4,
+        "fields": {
+            "category": "smartwatch",
+            "parent_category": null
+        }
+    },
+    {
+        "model": "products.category",
+        "pk": 5,
+        "fields": {
+            "category": "camera",
+            "parent_category": null
+        }
+    },
+    {
+        "model": "products.category_attribute",
+        "pk": 6,
+        "fields": {
+            "category": 3,
+            "attribute": 5
+        }
+    },
+    {
+        "model": "products.category_attribute",
+        "pk": 7,
+        "fields": {
+            "category": 3,
+            "attribute": 7
+        }
+    },
+    {
+        "model": "products.category_attribute",
+        "pk": 8,
+        "fields": {
+            "category": 3,
+            "attribute": 9
+        }
+    },
+    {
+        "model": "products.category_attribute",
+        "pk": 9,
+        "fields": {
+            "category": 4,
+            "attribute": 9
+        }
+    },
+    {
+        "model": "products.category_attribute",
+        "pk": 10,
+        "fields": {
+            "category": 4,
+            "attribute": 11
+        }
+    },
+    {
+        "model": "products.category_attribute",
+        "pk": 11,
+        "fields": {
+            "category": 5,
+            "attribute": 8
+        }
+    },
+    {
+        "model": "products.category_attribute",
+        "pk": 12,
+        "fields": {
+            "category": 5,
+            "attribute": 9
+        }
+    }
+
+  ]

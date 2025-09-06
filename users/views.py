@@ -64,7 +64,8 @@ class EmployeeRrgisterAPIView(APIView):
                 ]
             } , status=status.HTTP_403_FORBIDDEN)
         requset.data['is_employee'] = True
-        requset.data['email'] = str(employee.national_number) + "@noga.com"
+        emp = Employee.objects.get(id=employee)
+        requset.data['email'] = str(emp.national_number) + "@noga.com"
         serializedData = UserSerializer(data=requset.data)
         serializedData.is_valid(raise_exception=True)
         user = serializedData.save()

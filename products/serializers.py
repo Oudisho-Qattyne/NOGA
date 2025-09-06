@@ -5,6 +5,13 @@ from NOGA.utils import *
 from branches.models import Branch_Products
 from django.db.models.deletion import ProtectedError
 
+def is_float(value):
+    try:
+        float(value)
+        return True
+    except ValueError:
+        return False
+    
 class UnitSerializer(serializers.ModelSerializer):
     class Meta:
         model=Unit
@@ -140,7 +147,7 @@ class OptionSerializer(serializers.ModelSerializer):
             if option.isdigit():
                 raise serializers.ValidationError({attribute.attribute : ['this option should be string']})
         elif attribute.attribute_type == "number":
-            if not option.isdigit():
+            if not is_float(option):
                 raise serializers.ValidationError({attribute.attribute : ['this option should be number']})
         if attribute.has_unit:
             unit = validated_data.get('unit' , None)
