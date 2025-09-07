@@ -9,7 +9,7 @@ from .serializers import *
 from django.db.models.deletion import ProtectedError
 from rest_framework.decorators import api_view , permission_classes
 from django_filters.rest_framework import DjangoFilterBackend
-
+from NOGA.utils import Paginator
 from .utils.helpers import *
 
 
@@ -22,8 +22,12 @@ from django.db.models.functions import Concat
 
 class DiscountsAPIView(generics.ListAPIView , generics.CreateAPIView):
     queryset = Discount.objects.all()
+    pagination_class = Paginator
     serializer_class = DiscountSerializer
-
+    filter_backends=[DjangoFilterBackend,filters.OrderingFilter,filters.SearchFilter]
+    filterset_fields = ["id" , "start_date" , "end_date" , "created_at", "amount" , "discount_type" ]  # تصفية حسب القيم
+    search_fields = ["id" , "start_date" , "end_date" , "created_at", "amount" , "discount_type" , "discount_products__product__product_name" , "discount_categories__category__category" ]  
+    ordering_fields = ["id" , "start_date" , "end_date" , "created_at", "amount" , "discount_type" ]
 
 class DiscountAPIView(generics.DestroyAPIView, generics.UpdateAPIView):
     queryset = Discount.objects.all()
@@ -49,34 +53,6 @@ class DiscountAPIView(generics.DestroyAPIView, generics.UpdateAPIView):
             return Response({"message": "Discount can't be deleted"}, status=status.HTTP_400_BAD_REQUEST)
         
 
-class DiscountsAPIView(generics.ListAPIView , generics.CreateAPIView):
-    queryset = Discount.objects.all()
-    serializer_class = DiscountSerializer
-
-
-class DiscountAPIView(generics.DestroyAPIView, generics.UpdateAPIView):
-    queryset = Discount.objects.all()
-    serializer_class = DiscountSerializer
-    def delete(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            if instance.has_products:
-                products = Discount_Product.objects.filter(discount=instance)
-                for product in products:
-                    if product.has_options:
-                        Discount_Product_Option.objects.filter(discount_product=product).delete()
-                    product.delete()
-            if instance.has_categories:
-                categories = Discount_Category.objects.filter(discount = instance)
-                for category in categories:
-                    if category.has_options:
-                        Discount_Category_Option.objects.filter(discount_category=category).delete()
-                    category.delete()
-            super().delete(request, *args, **kwargs)
-            return Response({"message": "Discount deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
-        except ProtectedError:
-            return Response({"message": "Discount can't be deleted"}, status=status.HTTP_400_BAD_REQUEST)
-        
 
 # class OffersAPIView(generics.ListAPIView , generics.CreateAPIView):
 #     queryset = Offer.objects.all()
@@ -724,6 +700,10 @@ def getCustomersNumber(request):
     customers = Customer.objects.all().count()
     
     return(Response({'customers_number' : customers}))
+
+
+
+
 # @api_view(['GET','post'])
 # def hello(request):
 #      rule=generate_association_rules_df()

@@ -133,6 +133,6 @@ class Purchased_Products(models.Model):
     def save(self,*args,**kwargs):
         self.clean()
         return super().save(*args,**kwargs)
-    class Meta:
-        unique_together=['purchase','product']
+    # class Meta:
+    #     unique_together=['purchase','product']
 

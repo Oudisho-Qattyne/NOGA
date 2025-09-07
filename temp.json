@@ -1,0 +1,11 @@
+[
+    {
+        "model": "branches.branch_visitors",
+        "pk": 1,
+        "fields": {
+            "branch": 1,
+            "date": "2025-09-05",
+            "visitors_count": 7
+        }
+    }
+]

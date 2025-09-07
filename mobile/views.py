@@ -338,6 +338,7 @@ class AssociationRuleViewSet(viewsets.ModelViewSet):
     filter_backends=[DjangoFilterBackend,filters.OrderingFilter,filters.SearchFilter]
     filterset_fields = ['lift', 'confidence', 'support']  # تصفية حسب القيم
     search_fields = ['antecedents', 'consequents']  
+    ordering_fields = ['lift', 'confidence', 'support' , "created_at"]
     @action(detail=False,methods=['post'])
     def update_rules(self,request):
         try:

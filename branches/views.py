@@ -13,6 +13,14 @@ from django.http import JsonResponse, HttpResponseBadRequest, Http404
 from .models import Branch, Branch_Products
 from rest_framework.decorators import api_view
 from .utils import *
+from django.db.models import Sum, F
+from django.db.models.functions import Concat
+from django.db.models import CharField, ExpressionWrapper
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework import status
+from .models import Branch_Visitors
+
 # Create your views here.
 
 class BranchsAPIView(generics.ListAPIView , generics.ListCreateAPIView ):
@@ -135,28 +143,29 @@ def find_nearest_branch_with_product(request):
 
     # التحقق من صحة المعطيات
     if not product_id or not wanted_quantity or not current_branch_id:
-        return HttpResponseBadRequest("Missing parameters")
+        return Response({"message" : "Missing parameters"} , status=status.HTTP_400_BAD_REQUEST)
 
     try:
         wanted_quantity = int(wanted_quantity)
         current_branch = Branch.objects.get(id=current_branch_id)
     except ValueError:
-        return HttpResponseBadRequest("Invalid quantity")
+        return Response({"message" : "Invalid quantity"} , status=status.HTTP_400_BAD_REQUEST)
     except Branch.DoesNotExist:
-        return Http404("Current branch not found")
+        return Response({"message" : "Current branch not found"} , status=status.HTTP_404_NOT_FOUND)
+        
 
     # جلب موقع الفرع الحالي وتحليله
     try:
         current_location = parse_location(current_branch.location)
         print(current_location)
     except Exception:
-        return HttpResponseBadRequest("Invalid location format in current branch")
+        return Response({"message" : "Invalid location" } , status=status.HTTP_400_BAD_REQUEST)
 
     # جلب جميع الفروع التي تمتلك المنتج والكمية المطلوبة أو أكثر
     branch_products = Branch_Products.objects.filter(
-        product_id=product_id,
+        product=product_id,
         quantity__gte=wanted_quantity
-    ).exclude(id=current_branch_id).select_related('branch')
+    ).exclude(branch=current_branch_id).select_related('branch')
 
     if not branch_products.exists():
         return JsonResponse({"message": "No branch has the requested product quantity"}, status=404)
@@ -188,17 +197,338 @@ def find_nearest_branch_with_product(request):
             "area": nearest_branch.area,
             "street": nearest_branch.street,
             "location": nearest_branch.location,
+            "manager": nearest_branch.manager.first_name + " " + nearest_branch.manager.middle_name + " " + nearest_branch.manager.last_name,
             "distance_km": round(min_distance, 2)
         }
     })
 
+from django_filters import rest_framework as filters
+from django_filters import DateFilter, NumberFilter
+
+class BranchVisitorsFilter(filters.FilterSet):
+    start_date = DateFilter(field_name='date', lookup_expr='gte', label='Start date (YYYY-MM-DD)')
+    end_date = DateFilter(field_name='date', lookup_expr='lte', label='End date (YYYY-MM-DD)')
+    min_visitors = NumberFilter(field_name='visitors_count', lookup_expr='gte')
+    max_visitors = NumberFilter(field_name='visitors_count', lookup_expr='lte')
+    
+    class Meta:
+        model = Branch_Visitors
+        fields = {
+            'branch': ['exact'],
+            'date': ['exact'],
+            'visitors_count': ['exact'],
+        }
+
 class BranchVisitorsListView(generics.ListAPIView):
     queryset = Branch_Visitors.objects.all()
     serializer_class = BranchVisitorsSerializer
-    filter_backends = [filter.DjangoFilterBackend]
-    filterset_fields = ['branch', 'date', 'visitors_count']
-
-
+    filter_backends = [filters.DjangoFilterBackend]
+    filterset_class = BranchVisitorsFilter
+    
 class BranchVisitorsRetrieveView(generics.RetrieveAPIView):
     queryset = Branch_Visitors.objects.all()
     serializer_class = BranchVisitorsSerializer
+
+from datetime import datetime
+from django.utils.dateparse import parse_date
+
+def validate_date_format(date_str):
+    # """
+    # Validate date format in YYYY, YYYY-MM, or YYYY-MM-DD format
+    # Returns True if valid, False otherwise
+    # """
+    # if not date_str or not isinstance(date_str, str):
+    #     return False
+    
+    # # Split by hyphen to check components
+    # parts = date_str.split('-')
+    
+    # # Validate year format (YYYY)
+    # if len(parts) == 1:
+    #     if len(parts[0]) != 4 or not parts[0].isdigit():
+    #         return False
+    #     year = int(parts[0])
+    #     return 1900 <= year <= 2100  # Reasonable year range
+    
+    # # Validate year-month format (YYYY-MM)
+    # elif len(parts) == 2:
+    #     if len(parts[0]) != 4 or not parts[0].isdigit() or len(parts[1]) != 2 or not parts[1].isdigit():
+    #         return False
+    #     year = int(parts[0])
+    #     month = int(parts[1])
+    #     return 1900 <= year <= 2100 and 1 <= month <= 12
+    
+    # # Validate full date format (YYYY-MM-DD)
+    # elif len(parts) == 3:
+    #     if (len(parts[0]) != 4 or not parts[0].isdigit() or 
+    #         len(parts[1]) != 2 or not parts[1].isdigit() or 
+    #         len(parts[2]) != 2 or not parts[2].isdigit()):
+    #         return False
+        
+    #     year = int(parts[0])
+    #     month = int(parts[1])
+    #     day = int(parts[2])
+        
+    #     # Check if it's a valid date using datetime
+    #     try:
+    #         datetime(year, month, day)
+    #         return True
+    #     except ValueError:
+    #         return False
+    
+    return True
+
+# Alternative implementation using Django's parse_date (simpler but less specific)
+def validate_date_format_simple(date_str):
+    """
+    Alternative implementation using Django's built-in date parsing
+    """
+    if not date_str or not isinstance(date_str, str):
+        return False
+    
+    parts = date_str.split('-')
+    
+    if len(parts) == 1:
+        # Just year - check if it's a valid 4-digit number
+        return len(parts[0]) == 4 and parts[0].isdigit() and 1900 <= int(parts[0]) <= 2100
+    
+    elif len(parts) == 2:
+        # Year-month - try to parse as complete date (will use day 1)
+        test_date = parse_date(f"{date_str}-01")
+        return test_date is not None
+    
+    elif len(parts) == 3:
+        # Full date
+        return parse_date(date_str) is not None
+    
+    return False
+
+def calcBranchesVisitors(statistics):
+    res = []
+    branches = {}
+    for branch in statistics:
+        branch_id = branch['branch_id']
+        if branch_id in branches:
+            # Update existing branch entry
+            existing_branch = res[branches[branch_id]]
+            existing_branch['total_visitors'] += branch['total_visitors']
+        else:
+            # Create new branch entry
+            branches[branch_id] = len(res)
+            res.append({
+                "branch_id": branch_id,
+                "branch_name": branch['branch_name'],
+                "total_visitors": branch['total_visitors']
+            })
+    return res
+
+@api_view(["GET"])
+def visitorsAllBranches(request):
+    month = request.query_params.get('month')
+    year = request.query_params.get('year')
+    day = request.query_params.get('day')
+    
+    statistics = Branch_Visitors.objects.all()
+
+    if day:
+        if validate_date_format(day):
+            statistics = statistics.filter(
+                date__year=day.split('-')[0],
+                date__month=day.split('-')[1],
+                date__day=day.split('-')[2]
+            )
+        else:
+            return Response({"day": "invalid date"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    elif month:
+        if validate_date_format(month):
+            statistics = statistics.filter(
+                date__year=month.split('-')[0],
+                date__month=month.split('-')[1]
+            )
+        else:
+            return Response({"month": "invalid date"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    elif year:
+        if validate_date_format(year):
+            statistics = statistics.filter(date__year=year.split('-')[0])
+        else:
+            return Response({"year": "invalid date"}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Annotate with branch_name and aggregate visitors
+    statistics = statistics.values('branch').annotate(
+        total_visitors=Sum('visitors_count'),
+        branch_name=ExpressionWrapper(
+            Concat(F('branch__city__city_name'), F('branch__number')),
+            output_field=CharField()
+        )
+    ).values(
+        branch_id=F('branch'),
+        branch_name=F('branch_name'),
+        total_visitors=F('total_visitors')
+    ).order_by('-total_visitors')
+
+    res = calcBranchesVisitors(statistics)
+    return Response(res if statistics else [])
+
+@api_view(["GET"])
+def visitorsPerBranch(request , branch_id):
+    month = request.query_params.get('month')
+    year = request.query_params.get('year')
+    day = request.query_params.get('day')
+    
+    statistics = Branch_Visitors.objects.filter(branch=branch_id)
+
+    if day:
+        if validate_date_format(day):
+            statistics = statistics.filter(
+                date__year=day.split('-')[0],
+                date__month=day.split('-')[1],
+                date__day=day.split('-')[2]
+            )
+        else:
+            return Response({"day": "invalid date"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    elif month:
+        if validate_date_format(month):
+            statistics = statistics.filter(
+                date__year=month.split('-')[0],
+                date__month=month.split('-')[1]
+            )
+        else:
+            return Response({"month": "invalid date"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    elif year:
+        if validate_date_format(year):
+            statistics = statistics.filter(date__year=year.split('-')[0])
+        else:
+            return Response({"year": "invalid date"}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Annotate with branch_name and aggregate visitors
+    statistics = statistics.values('branch').annotate(
+        total_visitors=Sum('visitors_count'),
+        branch_name=ExpressionWrapper(
+            Concat(F('branch__city__city_name'), F('branch__number')),
+            output_field=CharField()
+        )
+    ).values(
+        branch_id=F('branch'),
+        branch_name=F('branch_name'),
+        total_visitors=F('total_visitors')
+    ).order_by('-total_visitors')
+
+    res = calcBranchesVisitors(statistics)
+    return Response(res if statistics else [])
+
+@api_view(["GET"])
+def TotalVisitorsAllBranches(request):
+    month = request.query_params.get('month', None)
+    year = request.query_params.get('year', None)
+    day = request.query_params.get('day', None)
+    
+    statistics = Branch_Visitors.objects.all()
+    
+    if month:
+        if validate_date_format(month):
+            statistics = statistics.filter(
+                date__year=month.split('-')[0],
+                date__month=month.split('-')[1]
+            )
+            statistics = statistics.aggregate(total_visitors=Sum('visitors_count'))
+            if statistics['total_visitors']:
+                return Response(statistics)
+            else:
+                return Response({'total_visitors': 0})
+        else: 
+            return Response({"month": "invalid date"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    elif year:
+        if validate_date_format(year):
+            statistics = statistics.filter(date__year=year.split('-')[0])
+            statistics = statistics.aggregate(total_visitors=Sum('visitors_count'))
+            if statistics['total_visitors']:
+                return Response(statistics)
+            else:
+                return Response({'total_visitors': 0})
+        else: 
+            return Response({"year": "invalid date"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    elif day:
+        if validate_date_format(day):
+            statistics = statistics.filter(
+                date__year=day.split('-')[0],
+                date__month=day.split('-')[1],
+                date__day=day.split('-')[2]
+            )
+            statistics = statistics.aggregate(total_visitors=Sum('visitors_count'))
+            if statistics['total_visitors']:
+                return Response(statistics)
+            else:
+                return Response({'total_visitors': 0})
+        else: 
+            return Response({"day": "invalid date"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    else:
+        statistics = statistics.aggregate(total_visitors=Sum('visitors_count'))
+        if statistics['total_visitors']:
+            return Response(statistics)
+        else:
+            return Response({'total_visitors': 0})
+
+@api_view(["GET"])
+def TotalVisitorsPerBranch(request, branch_id):
+    month = request.query_params.get('month', None)
+    year = request.query_params.get('year', None)
+    day = request.query_params.get('day', None)
+    
+    statistics = Branch_Visitors.objects.filter(branch_id=branch_id)
+    
+    if month:
+        if validate_date_format(month):
+            statistics = statistics.filter(
+                date__year=month.split('-')[0],
+                date__month=month.split('-')[1]
+            )
+            statistics = statistics.aggregate(total_visitors=Sum('visitors_count'))
+            if statistics['total_visitors']:
+                return Response(statistics)
+            else:
+                return Response({'total_visitors': 0})
+        else: 
+            return Response({"month": "invalid date"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    elif year:
+        if validate_date_format(year):
+            statistics = statistics.filter(date__year=year.split('-')[0])
+            statistics = statistics.aggregate(total_visitors=Sum('visitors_count'))
+            if statistics['total_visitors']:
+                return Response(statistics)
+            else:
+                return Response({'total_visitors': 0})
+        else: 
+            return Response({"year": "invalid date"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    elif day:
+        if validate_date_format(day):
+            statistics = statistics.filter(
+                date__year=day.split('-')[0],
+                date__month=day.split('-')[1],
+                date__day=day.split('-')[2]
+            )
+            statistics = statistics.aggregate(total_visitors=Sum('visitors_count'))
+            if statistics['total_visitors']:
+                return Response(statistics)
+            else:
+                return Response({'total_visitors': 0})
+        else: 
+            return Response({"day": "invalid date"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    else:
+        statistics = statistics.aggregate(total_visitors=Sum('visitors_count'))
+        if statistics['total_visitors']:
+            return Response(statistics)
+        else:
+            return Response({'total_visitors': 0})
+
+
+

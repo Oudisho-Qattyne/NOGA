@@ -351,6 +351,7 @@ class VariantSerializers(serializers.ModelSerializer):
         data = super(VariantSerializers, self).to_representation(instance) 
         data['product'] = instance.product.product_name
         data['category'] = instance.product.category.category
+        data['main_product'] = instance.product.id
         return data
 
 class ProductImageSerializer(serializers.ModelSerializer):

@@ -46,6 +46,9 @@ class BranchSerializer(serializers.ModelSerializer):
 
         return branch
     
+    def update(self, instance, validated_data):
+        return super().update(instance, validated_data)
+    
     def validate(self, attrs):
         if(bool(attrs["manager"].job_type.job_type == "Manager")):
             return super().validate(attrs)

@@ -296,7 +296,7 @@ class AssociationRuleSerializer(serializers.ModelSerializer):
     rule_strength=serializers.SerializerMethodField()
     class Meta:
         model=AssociationRule
-        fields=['antecedents','consequents','antecedents_list','consequents_list','support','confidence','lift','rule_strength','created_at']
+        fields=['id' , 'antecedents','consequents','antecedents_list','consequents_list','support','confidence','lift','rule_strength','created_at']
 
     def ensure_list(self,value):
         if value is None:
