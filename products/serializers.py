@@ -194,11 +194,15 @@ class OptionSerializer(serializers.ModelSerializer):
         unit = "null"
         if instance.attribute.has_unit:
             try :
-                unit = Option_Unit.objects.get(option=instance.id).unit.unit
+                unit = Option_Unit.objects.get(option=instance.id)
+                data['unit_id'] = unit.unit.id
+                data['unit'] = unit.unit.unit
             except Option_Unit.DoesNotExist:
                 unit = "null"
-        data['unit'] = unit
+                data['unit_id'] = "null"
+                data['unit'] = "null"
         data['attribute'] = instance.attribute.attribute
+        data['attribute_id'] = instance.attribute.id
         return data
 
 class VariantImageSerializer(serializers.ModelSerializer):
