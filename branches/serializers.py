@@ -98,8 +98,8 @@ class CamerasSerializer(serializers.ModelSerializer):
         # url = reverse('camera-detail', kwargs={'pk': camera_instance.pk})
         source_url = request.build_absolute_uri('/ws/source/'+str(camera_instance.id))
         view_url = request.build_absolute_uri('/ws/view/'+str(camera_instance.id))
-        source_url = source_url.replace('http://', 'ws://').replace('https://', 'wss://')
-        view_url = view_url.replace('http://', 'ws://').replace('https://', 'wss://')
+        source_url = source_url.replace('http://', 'wss://').replace('https://', 'wss://')
+        view_url = view_url.replace('http://', 'wss://').replace('https://', 'wss://')
         camera_instance.source_url = source_url
         camera_instance.view_url = view_url
         camera_instance.save()
