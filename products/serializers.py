@@ -528,6 +528,7 @@ class TransportationSerializer(serializers.ModelSerializer):
             if source != None:
                 try:
                     variant_instance = Branch_Products.objects.get(branch=source ,product=variant_instance.id) 
+                    print(variant_instance.quantity , quantity)
                     if variant_instance.quantity < quantity:
                             errors.append({variant_instance.product.product.product_name : "The amount transported greater than you have"})
                 except Branch_Products.DoesNotExist:

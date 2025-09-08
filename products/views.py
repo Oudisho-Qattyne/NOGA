@@ -230,7 +230,17 @@ class TransportationsAPIView( generics.CreateAPIView , generics.ListAPIView ):
     filterset_fields=["id" , "transportation_status" , "source" , "destination" , "code" , "transported_products" , "received_products" , "created_at" , "transported_at" , "received_at"] 
     search_fields=["id" , "transportation_status" , "source" , "destination" , "code" , "transported_products" , "received_products" , "created_at" , "transported_at" , "received_at"]
     ordering_fields=["id" , "transportation_status" , "source" , "destination" , "code" , "transported_products" , "received_products" , "created_at" , "transported_at" , "received_at"] 
-
+    def get_queryset(self):
+        qs = super().get_queryset()
+        # استخرج قيمة الفلتر المخصص من query params
+        status_filter = self.request.query_params.get('transportation_status_any')
+        if status_filter:
+            # مثال: تمرير القيم كـ "packaging,transporting,delivered"
+            statuses = status_filter.split(',')
+            qs = qs.filter(
+                Q(transportation_status__in=statuses)
+            )
+        return qs
 class TransportationAPIView(generics.DestroyAPIView , generics.UpdateAPIView , generics.RetrieveAPIView):
     queryset = Transportation.objects.all().order_by('-created_at')
     serializer_class = TransportationSerializer
@@ -355,10 +365,13 @@ def ConfirmTransportation(request , pk):
                     branch_product = Branch_Products.objects.get(branch=destination_branch , product=received_product_instance.product)
                     branch_product.quantity = branch_product.quantity +  received_product_instance.quantity
                     branch_product.save()
+                    print(branch_product.quantity)
                 except:
                     branch_product = Branch_Products.objects.create(branch=destination_branch , product=received_product_instance.product, quantity=0)
                     branch_product.quantity = branch_product.quantity + received_product_instance.quantity
+
                     branch_product.save()
+                    print(branch_product.quantity)
             else:
                 variant_instance = received_product_instance.product
                 variant_instance.quantity = variant_instance.quantity + received_product_instance.quantity
@@ -379,7 +392,7 @@ class TransportRequestsAPIView(generics.ListAPIView , generics.CreateAPIView):
     filterset_fields=["id" , "request_status" , "branch" , "requested_products" , "transportation" , "created_at"] 
     search_fields=["id" , "request_status" , "branch" , "requested_products" , "transportation" , "created_at"]
     ordering_fields=["id" , "request_status" , "branch" , "requested_products" , "transportation" , "created_at"] 
-
+    
 
 class TransportRequestAPIView(generics.DestroyAPIView , generics.UpdateAPIView , generics.RetrieveAPIView):
     queryset = Transport_Request.objects.all()

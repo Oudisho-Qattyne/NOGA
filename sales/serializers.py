@@ -568,8 +568,8 @@ class PurchaseSerializer(serializers.ModelSerializer):
             # purchase.total_price += insatnce.total_price
         if all(not d for d in purchased_products) :
             errors["purchased_products"] = purchased_products_errors
-        if len(errors) > 0:
-            raise serializers.ValidationError(errors)
+        if len(purchased_products_errors) > 0:
+            raise serializers.ValidationError(purchased_products_errors)
         return validated_data
     
     def create(self, validated_data):

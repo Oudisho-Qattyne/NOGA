@@ -89,9 +89,10 @@ class PurchasesAPIView(generics.CreateAPIView , generics.ListAPIView):
     serializer_class = PurchaseSerializer
     pagination_class = Paginator
     filter_backends=[DjangoFilterBackend,filters.OrderingFilter,filters.SearchFilter]
-    filterset_fields = [ "status" , "date_of_purchase" , "created_at" , "subtotal_price" ,"total_price" , "has_coupon" , "customer" ]
+    filterset_fields = [ "status" , "date_of_purchase" , "created_at" , "subtotal_price" ,"total_price" , "has_coupon" , "customer" , "branch"]
     search_fields =[ "status" , "date_of_purchase" , "created_at" , "subtotal_price" ,"total_price" , "has_coupon" ]
     ordering_fields = [ "status" , "date_of_purchase" , "created_at" , "subtotal_price" ,"total_price" , "has_coupon" ]
+
 class PurchaseAPIView(generics.UpdateAPIView , generics.DestroyAPIView):
     queryset = Purchase.objects.all()
     serializer_class = PurchaseSerializer

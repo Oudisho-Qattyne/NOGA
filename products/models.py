@@ -114,7 +114,7 @@ class Variant_Option(models.Model):
 
 class Transportation(models.Model):
     TRANSPORT_STATUS_TYPES=[
-        ('packaging:','packaging:'),
+        ('packaging','packaging'),
         ('transporting','transporting'),
         ('delivered','delivered'),
         ('confirmed','confirmed'),
