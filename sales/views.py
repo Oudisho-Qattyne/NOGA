@@ -26,10 +26,10 @@ class DiscountsAPIView(generics.ListAPIView , generics.CreateAPIView):
     serializer_class = DiscountSerializer
     filter_backends=[DjangoFilterBackend,filters.OrderingFilter,filters.SearchFilter]
     filterset_fields = ["id" , "start_date" , "end_date" , "created_at", "amount" , "discount_type" ]  # تصفية حسب القيم
-    search_fields = ["id" , "start_date" , "end_date" , "created_at", "amount" , "discount_type" , "discount_products__product__product_name" , "discount_categories__category__category" ]  
+    search_fields = ["id" , "start_date" , "end_date" , "created_at", "amount" , "discount_type"  ]  
     ordering_fields = ["id" , "start_date" , "end_date" , "created_at", "amount" , "discount_type" ]
 
-class DiscountAPIView(generics.DestroyAPIView, generics.UpdateAPIView):
+class DiscountAPIView(generics.DestroyAPIView, generics.UpdateAPIView , generics.RetrieveAPIView):
     queryset = Discount.objects.all()
     serializer_class = DiscountSerializer
     def delete(self, request, *args, **kwargs):
@@ -80,14 +80,18 @@ class CouponsAPIView(generics.CreateAPIView , generics.ListAPIView):
     queryset = Coupon.objects.all()
     serializer_class = CouponSerializer
 
-class CouponAPIView(generics.UpdateAPIView , generics.DestroyAPIView):
+class CouponAPIView( generics.RetrieveAPIView , generics.UpdateAPIView , generics.DestroyAPIView ):
     queryset = Coupon.objects.all()
     serializer_class = CouponSerializer
 
 class PurchasesAPIView(generics.CreateAPIView , generics.ListAPIView):
     queryset = Purchase.objects.all()
     serializer_class = PurchaseSerializer
-
+    pagination_class = Paginator
+    filter_backends=[DjangoFilterBackend,filters.OrderingFilter,filters.SearchFilter]
+    filterset_fields = [ "status" , "date_of_purchase" , "created_at" , "subtotal_price" ,"total_price" , "has_coupon" , "customer" ]
+    search_fields =[ "status" , "date_of_purchase" , "created_at" , "subtotal_price" ,"total_price" , "has_coupon" ]
+    ordering_fields = [ "status" , "date_of_purchase" , "created_at" , "subtotal_price" ,"total_price" , "has_coupon" ]
 class PurchaseAPIView(generics.UpdateAPIView , generics.DestroyAPIView):
     queryset = Purchase.objects.all()
     serializer_class = PurchaseSerializer

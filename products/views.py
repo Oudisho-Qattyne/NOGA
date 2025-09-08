@@ -13,6 +13,7 @@ from django.db.models import Q
 from django.utils import timezone
 from .utils.recommendation_utils import RecommendationEngine
 from collections import defaultdict
+from django.db.models import F
 # Create your views here.
 
 
@@ -74,6 +75,54 @@ class CategroyAPIView(generics.DestroyAPIView , generics.UpdateAPIView , generic
             return Response({"message": "Object deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
         except ProtectedError:
             return Response({"message": "Object can't be deleted"}, status=status.HTTP_400_BAD_REQUEST)
+
+from django.db.models import F, Subquery, OuterRef
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from .models import Option, Category_Attribute, Category, Option_Unit
+
+@api_view(['GET'])
+def option_list(request, pk):
+    category_id = pk
+    
+    if not category_id:
+        return Response({"error": "category_id parameter is required"}, status=400)
+    
+    try:
+        category = Category.objects.get(id=category_id)
+    except Category.DoesNotExist:
+        return Response({"error": "Category not found"}, status=404)
+    
+    category_attributes = Category_Attribute.objects.filter(category=category)
+    attribute_ids = category_attributes.values_list('attribute_id', flat=True)
+    
+    unique_combinations = Option_Unit.objects.filter(
+        option__attribute_id__in=attribute_ids
+    ).select_related('option', 'option__attribute', 'unit').values(
+        'option__id',
+        'option__option',
+        'option__attribute__attribute',
+        'option__attribute_id',
+        'unit_id',
+        'unit__unit'
+    ).distinct()
+    
+    formatted_options = []
+    seen = set()
+    for combo in unique_combinations:
+        key = (combo['option__attribute_id'], combo['option__option'], combo['unit_id'])
+        if key not in seen:
+            seen.add(key)
+            formatted_options.append({
+                'id': combo['option__id'],
+                'option': combo['option__option'],
+                'attribute': combo['option__attribute__attribute'],
+                'attribute_id': combo['option__attribute_id'],
+                'unit_id': combo['unit_id'],
+                'unit': combo['unit__unit']
+            })
+    
+    return Response(formatted_options)
 
 class ProductsAPIView(generics.ListAPIView , generics.CreateAPIView):
     queryset = Product.objects.all()

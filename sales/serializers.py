@@ -86,6 +86,7 @@ class DiscountProductSerializer(serializers.ModelSerializer):
         # self.fields['product'] = ProductSerializer(many=True, read_only=True)  
         data = super(DiscountProductSerializer, self).to_representation(instance)
         data['product'] = instance.product.product_name
+        data['id'] = instance.product.id
         return data
 
 
@@ -143,10 +144,13 @@ class DiscountCategorySerializer(serializers.ModelSerializer):
                     for option in discount_product_options:
                         product_has_option = False
                         for variant in variants:
+                            print(variant)
+                            print(option)
                             product_options = variant.options.values_list("id" , flat=True)
                             if option.id  in product_options:
                                 product_has_option = True
-                                break
+                                print("it has" + variant.product.product_name )
+                                return validated_data
                         if not product_has_option:
                             errors.append({option.id : "This category products don`t have this option"})
 
@@ -162,7 +166,7 @@ class DiscountCategorySerializer(serializers.ModelSerializer):
         # discount_product_instance = super().create(validated_data)
         if has_options:
             for option in options:
-                discount_category_instance.options.add(option)
+                discount_category_instance.options.add(option.id)
         return discount_category_instance
     
 
@@ -171,6 +175,7 @@ class DiscountCategorySerializer(serializers.ModelSerializer):
         # self.fields['product'] = ProductSerializer(many=True, read_only=True)  
         data = super(DiscountCategorySerializer, self).to_representation(instance)
         data['category'] = instance.category.category
+        data['id'] = instance.category.id
         return data
 
 class DiscountSimpleSerializer(serializers.ModelSerializer):
@@ -244,6 +249,43 @@ class DiscountSerializer(serializers.ModelSerializer):
             
         return discount
 
+    def update(self, instance, validated_data):
+        
+        discount_products = validated_data.pop("discount_products" , [])
+        discount_categories = validated_data.pop("discount_categories" , [])
+        has_products = validated_data.get("has_products" , False)
+        has_categories = validated_data.get("has_categories" , False)
+        Discount_Product.objects.filter(discount = instance).delete()
+        Discount_Category.objects.filter(discount = instance).delete()
+
+        discount = super().update(instance, validated_data)
+
+        for_every_product = validated_data.get("for_every_product" , False)
+        has_products = validated_data.get("has_products" , False)
+        has_categories = validated_data.get("has_categories" , False)
+        if not for_every_product:
+            if has_products:
+                for discount_product in discount_products:
+                    discount_product['discount'] = discount.id
+                    discount_product['product'] = discount_product['product'].id
+                    if discount_product['has_options']:
+                        discount_product['options'] = list(option.id for option in  discount_product['options'])
+                    discount_product_serialized = DiscountProductSerializer(data=discount_product)
+                    discount_product_serialized.is_valid(raise_exception=True)
+                    discount_product_serialized.save()
+
+            if has_categories:
+                for discount_category in discount_categories:
+                    discount_category['discount'] = discount.id
+                    discount_category['category'] = discount_category['category'].id
+                    if discount_category['has_options']:
+                        discount_category['options'] = list(option.id for option in  discount_category['options'])
+                    discount_category_serialized = DiscountCategorySerializer(data=discount_category)
+                    discount_category_serialized.is_valid(raise_exception=True)
+                    discount_category_serialized.save()
+            
+        return discount
+        return 
     # def update(self, instance, validated_data):
     #     instance = super().update(instance, validated_data)
 
@@ -360,6 +402,26 @@ class CouponSerializer(serializers.ModelSerializer):
         model = Coupon
         fields = ['id' , "code" , "start_date" , "end_date" , "created_at" , "amount" , "discount_type" , "min_price" , "max_price" , "quantity"]
 
+class CustomerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Customer
+        fields = ["id" , "national_number" , "first_name" , "last_name" , "phone_number" , "gender" ]
+
+    def validate(self, attrs):
+        errors = {}
+        validated_data = super().validate(attrs)
+        national_number = validated_data.get('national_number' ,None)
+        phone_number = validated_data.get('phone_number' ,None)
+        if not national_number.isdigit():
+            errors["national_number"] = "National number should be a number"
+        if not phone_number.isdigit():
+            errors["phone_number"] = "Phone number should be a number"
+        
+        if errors:
+            raise serializers.ValidationError(errors)
+        return validated_data
+    
+
 class PurchasedProductsSerializer(serializers.ModelSerializer):
     discount = serializers.PrimaryKeyRelatedField(queryset=Discount.objects.all() , write_only=True, required=False)
     # offer = serializers.PrimaryKeyRelatedField(queryset=Offer.objects.all() , write_only=True, required=False)
@@ -444,12 +506,12 @@ class PurchasedProductsSerializer(serializers.ModelSerializer):
         # self.fields['offer'] = OfferSerializer( read_only=True)  
         # self.fields['product'] = ProductSerializer(many=True, read_only=True)  
         data = super(PurchasedProductsSerializer, self).to_representation(instance)
-        # data['product'] = instance.product.product_name
+        data['product_name'] = instance.product.product.product_name
         return data
     
 class PurchaseSerializer(serializers.ModelSerializer):
     purchased_products = PurchasedProductsSerializer(many=True)
-
+    customer = serializers.SerializerMethodField()
     # purchased_offers = serializers.PrimaryKeyRelatedField(queryset=Offer.objects.all() , write_only=True, required=False , many = True)
     class Meta:
         model = Purchase
@@ -582,28 +644,10 @@ class PurchaseSerializer(serializers.ModelSerializer):
             purchase.total_price += insatnce.total_price
             purchase.save()
             return purchase
-           
+    def get_customer(self , obj):
+        return obj.customer.first_name + " " + obj.customer.last_name
     def to_representation(self, instance):
         data = super(PurchaseSerializer, self).to_representation(instance)
         data['branch_name'] = instance.branch.city.city_name + str(instance.branch.number) 
         return data
-    
-class CustomerSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Customer
-        fields = ["id" , "national_number" , "first_name" , "last_name" , "phone_number" , "gender" ]
-
-    def validate(self, attrs):
-        errors = {}
-        validated_data = super().validate(attrs)
-        national_number = validated_data.get('national_number' ,None)
-        phone_number = validated_data.get('phone_number' ,None)
-        if not national_number.isdigit():
-            errors["national_number"] = "National number should be a number"
-        if not phone_number.isdigit():
-            errors["phone_number"] = "Phone number should be a number"
-        
-        if errors:
-            raise serializers.ValidationError(errors)
-        return validated_data
     

@@ -33,25 +33,25 @@ class Discount(models.Model):
         return self.discount_category_set.all()
     
 class Discount_Product(models.Model):
-    discount = models.ForeignKey(Discount , on_delete=models.PROTECT)
-    product = models.ForeignKey(Product , on_delete = models.PROTECT)
+    discount = models.ForeignKey(Discount , on_delete=models.CASCADE)
+    product = models.ForeignKey(Product , on_delete = models.CASCADE)
     has_options = models.BooleanField()
     options = models.ManyToManyField(Option , through="Discount_Product_Option")
 
 class Discount_Product_Option(models.Model):
-    discount_product = models.ForeignKey(Discount_Product , on_delete=models.PROTECT)
-    option = models.ForeignKey(Option , on_delete=models.PROTECT)
+    discount_product = models.ForeignKey(Discount_Product , on_delete=models.CASCADE)
+    option = models.ForeignKey(Option , on_delete=models.CASCADE)
 
 class Discount_Category(models.Model):
-    discount = models.ForeignKey(Discount , on_delete=models.PROTECT)
-    category = models.ForeignKey(Category , on_delete=models.PROTECT)
+    discount = models.ForeignKey(Discount , on_delete=models.CASCADE)
+    category = models.ForeignKey(Category , on_delete=models.CASCADE)
     has_options = models.BooleanField()
     options = models.ManyToManyField(Option , through="Discount_Category_Option")
 
 
 class Discount_Category_Option(models.Model):
-    discount_category = models.ForeignKey(Discount_Category , on_delete=models.PROTECT)
-    option = models.ForeignKey(Option , on_delete=models.PROTECT)
+    discount_category = models.ForeignKey(Discount_Category , on_delete=models.CASCADE)
+    option = models.ForeignKey(Option , on_delete=models.CASCADE)
 
 
 # class Offer(models.Model):
