@@ -93,7 +93,7 @@ class PurchasesAPIView(generics.CreateAPIView , generics.ListAPIView):
     search_fields =[ "status" , "date_of_purchase" , "created_at" , "subtotal_price" ,"total_price" , "has_coupon" ]
     ordering_fields = [ "status" , "date_of_purchase" , "created_at" , "subtotal_price" ,"total_price" , "has_coupon" ]
 
-class PurchaseAPIView(generics.UpdateAPIView , generics.DestroyAPIView):
+class PurchaseAPIView(generics.UpdateAPIView , generics.DestroyAPIView , generics.RetrieveAPIView):
     queryset = Purchase.objects.all()
     serializer_class = PurchaseSerializer
     def delete(self, request, *args, **kwargs):

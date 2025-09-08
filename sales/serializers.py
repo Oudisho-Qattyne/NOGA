@@ -553,8 +553,6 @@ class PurchaseSerializer(serializers.ModelSerializer):
             if len(branch_product) > 0:
                 if branch_product[0].quantity < quantity: 
                     purchased_products_errors.append({"quantity" : "This branch don't have the needed quantity"})
-                else:
-                    purchased_products_errors.append({})
             else:
                 purchased_products_errors.append({"product" : "This branch don't have this product"})
             purchased_product["wholesale_price"] = purchased_product["product"].wholesale_price
@@ -566,6 +564,7 @@ class PurchaseSerializer(serializers.ModelSerializer):
 
             # purchase.subtotal_price += insatnce.selling_price * insatnce.quantity
             # purchase.total_price += insatnce.total_price
+        print(purchased_products_errors)
         if all(not d for d in purchased_products) :
             errors["purchased_products"] = purchased_products_errors
         if len(purchased_products_errors) > 0:
