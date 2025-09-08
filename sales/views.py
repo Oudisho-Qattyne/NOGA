@@ -117,7 +117,7 @@ class CustomersAPIVIew(generics.CreateAPIView , generics.ListAPIView):
     queryset = Customer.objects.all()
     serializer_class = CustomerSerializer
 
-class CustomerAPIVIew(generics.UpdateAPIView , generics.DestroyAPIView):
+class CustomerAPIVIew(generics.UpdateAPIView , generics.DestroyAPIView , generics.RetrieveAPIView):
     queryset = Customer.objects.all()
     serializer_class = CustomerSerializer
 
