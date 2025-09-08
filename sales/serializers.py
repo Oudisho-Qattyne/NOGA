@@ -511,11 +511,11 @@ class PurchasedProductsSerializer(serializers.ModelSerializer):
     
 class PurchaseSerializer(serializers.ModelSerializer):
     purchased_products = PurchasedProductsSerializer(many=True)
-    customer = serializers.SerializerMethodField()
+    customer_name = serializers.SerializerMethodField()
     # purchased_offers = serializers.PrimaryKeyRelatedField(queryset=Offer.objects.all() , write_only=True, required=False , many = True)
     class Meta:
         model = Purchase
-        fields = ["id" , "branch" , "customer" , "status" , "date_of_purchase" , "created_at" , "subtotal_price" ,"total_price" , "has_coupon" , "coupon" , "purchased_products" ]
+        fields = ["id" , "branch" , "customer" , "customer_name" , "status" , "date_of_purchase" , "created_at" , "subtotal_price" ,"total_price" , "has_coupon" , "coupon" , "purchased_products" ]
         extra_kwargs={
             "coupon":{
                 "required":False,
@@ -644,7 +644,7 @@ class PurchaseSerializer(serializers.ModelSerializer):
             purchase.total_price += insatnce.total_price
             purchase.save()
             return purchase
-    def get_customer(self , obj):
+    def get_customer_name(self , obj):
         return obj.customer.first_name + " " + obj.customer.last_name
     def to_representation(self, instance):
         data = super(PurchaseSerializer, self).to_representation(instance)

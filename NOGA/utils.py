@@ -547,7 +547,7 @@ def calculate_discount_instance(self , variant):
                     if is_valid_discount(dc.discount):
                         # discount_data = DiscountSimpleSerializer(dc.discount)
                         return {
-                            "discount" : dc.discoun,
+                            "discount" : dc.discount,
                             "total" : calculate_totla_price(dc.discount , variant.selling_price)
                             }
 
